@@ -1,0 +1,9 @@
+# Never commit company data or secrets
+migration/
+*.zip
+*backup*.json
+.env
+.env.*
+supabase/.temp/
+node_modules/
+.DS_Store
