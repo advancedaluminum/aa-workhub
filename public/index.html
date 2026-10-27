@@ -731,8 +731,16 @@ code { font-family: var(--font-data); font-size: .9em; background: var(--surface
   }
 
   /* ---------- list view ---------- */
+  // Jobs list order: jobs still open (estimates and in progress) first, newest first;
+  // then closed jobs by completed date, most recently completed at the top.
   function sortedJobs() {
-    return Array.from(jobs.values()).sort(function (a, b) { return String(b.createdAt || "").localeCompare(String(a.createdAt || "")); });
+    var t = function (j) { var d = completedOn(j); return d ? d.getTime() : 0; };
+    return Array.from(jobs.values()).sort(function (a, b) {
+      var ac = a.status === "closed", bc = b.status === "closed";
+      if (ac !== bc) return ac ? 1 : -1;
+      if (ac) { var d = t(b) - t(a); if (d) return d; }
+      return String(b.createdAt || "").localeCompare(String(a.createdAt || ""));
+    });
   }
   function renderList() {
     if (!loaded) return;
