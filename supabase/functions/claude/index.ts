@@ -5,7 +5,8 @@
 // browser never sees it. Only signed-in people on the team list can use it.
 //
 // Secrets (Supabase dashboard -> Edge Functions -> Secrets):
-//   ANTHROPIC_API_KEY    required - from console.anthropic.com
+//   ANTHROPIC_API_KEY    required - from platform.claude.com/settings/keys (create it in a workspace)
+//   ANTHROPIC_WORKSPACE_ID optional - only if the key isn't tied to a workspace
 //   AA_PUBLIC_KEY        required - your Supabase publishable key (sb_publishable_...)
 //   CLAUDE_MODEL         optional - model for insights and scanned bills (default below)
 //   CLAUDE_MODEL_QUICK   optional - faster, cheaper model for reading text bills
@@ -26,6 +27,14 @@ const cors = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Vary": "Origin",
 };
+
+// Keys created for one workspace need nothing extra; an unscoped key needs ANTHROPIC_WORKSPACE_ID.
+function anthropicHeaders(apiKey: string): Record<string, string> {
+  const h: Record<string, string> = { "Authorization": `Bearer ${apiKey}`, "anthropic-version": "2023-06-01", "content-type": "application/json" };
+  const ws = Deno.env.get("ANTHROPIC_WORKSPACE_ID");
+  if (ws) h["anthropic-workspace-id"] = ws;
+  return h;
+}
 
 function reply(status: number, body: Record<string, unknown>) {
   return new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
@@ -71,7 +80,7 @@ Deno.serve(async (req) => {
   try {
     res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
-      headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+      headers: anthropicHeaders(apiKey),
       body: JSON.stringify({ model, max_tokens: 4096, messages: [{ role: "user", content }] }),
     });
   } catch (e) {

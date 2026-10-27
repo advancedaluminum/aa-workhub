@@ -62,10 +62,13 @@ start.
 
 ### 3. Get a Claude API key
 
-1. Go to **console.anthropic.com**, sign in, and add a payment method under **Billing**.
-   Reading a bill or writing insights costs a few cents each.
-2. **API Keys → Create key.** Copy it; you'll paste it in the next step.
-   Never put this key in `config.js` or anywhere in the `public` folder.
+1. Go to **platform.claude.com** (the Claude Console), sign in, and add a payment method or
+   credits under **Billing**. Reading a bill or writing insights costs a few cents each.
+2. Open **Settings → API keys** (`platform.claude.com/settings/keys`) and click
+   **Create key**. Name it `aa-workhub`, and under **Workspace** choose your workspace
+   (for example **Default**) so the key needs no extra settings.
+3. Copy the key (it starts with `sk-ant-`). It's shown only once; you'll paste it in the next
+   step. Never put this key in `config.js` or anywhere in the `public` folder.
 
 ### 4. Add the Claude function
 
