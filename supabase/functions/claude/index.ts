@@ -9,7 +9,7 @@
 //   AA_PUBLIC_KEY        required - your Supabase publishable key (sb_publishable_...)
 //   CLAUDE_MODEL         optional - model for insights and scanned bills (default below)
 //   CLAUDE_MODEL_QUICK   optional - faster, cheaper model for reading text bills
-//   ALLOWED_ORIGIN       optional - e.g. https://hub.advancedaluminum.com (default: any)
+//   ALLOWED_ORIGIN       optional - e.g. https://workhub.advancedaluminum.com (default: any)
 // SUPABASE_URL is provided by Supabase automatically.
 
 import { createClient } from "jsr:@supabase/supabase-js@2";

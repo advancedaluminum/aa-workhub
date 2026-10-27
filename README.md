@@ -1,7 +1,7 @@
 # AA Hub
 
 Advanced Aluminum's job costing app, moved off Claude.ai so the team can use it at
-**hub.advancedaluminum.com** with their own sign-in.
+**workhub.advancedaluminum.com** with their own sign-in.
 
 It does everything the Claude version did: the job profitability dashboard, estimates,
 material bills (including drop-in bill PDFs read by Claude), closeout autopsies, insights,
@@ -47,8 +47,8 @@ start.
 ### 2. Set up sign-in emails
 
 1. **Authentication → URL Configuration**
-   - **Site URL:** `https://hub.advancedaluminum.com`
-   - **Redirect URLs:** add `https://hub.advancedaluminum.com/**` and, for testing, your
+   - **Site URL:** `https://workhub.advancedaluminum.com`
+   - **Redirect URLs:** add `https://workhub.advancedaluminum.com/**` and, for testing, your
      Netlify address from step 5 (for example `https://aa-hub.netlify.app/**`).
 2. **Authentication → Emails → Magic Link** template: make sure the email includes the code
    as well as the link, so people on phones can type it in. Add this line to the template:
@@ -78,7 +78,7 @@ In Supabase, open **Edge Functions → Deploy a new function → Via editor**.
    - `ANTHROPIC_API_KEY` = the key from step 3
    - `AA_PUBLIC_KEY` = your Supabase **publishable** key (`sb_publishable_…`, from
      **Project Settings → API Keys**)
-   - `ALLOWED_ORIGIN` = `https://hub.advancedaluminum.com`
+   - `ALLOWED_ORIGIN` = `https://workhub.advancedaluminum.com`
 
 (If you use the Supabase command line instead: `supabase functions deploy claude`.)
 
@@ -96,12 +96,12 @@ In Supabase, open **Edge Functions → Deploy a new function → Via editor**.
 
 From now on, every change committed to GitHub goes live automatically within a minute.
 
-### 6. Put it on hub.advancedaluminum.com
+### 6. Put it on workhub.advancedaluminum.com
 
-1. In Netlify: **Domain management → Add a domain** → `hub.advancedaluminum.com`.
+1. In Netlify: **Domain management → Add a domain** → `workhub.advancedaluminum.com`.
 2. Wherever advancedaluminum.com's DNS is managed (your domain registrar, Cloudflare, or
    your web host), add one record:
-   - **Type:** CNAME  **Name:** `hub`  **Value:** your Netlify address, e.g. `aa-hub.netlify.app`
+   - **Type:** CNAME  **Name:** `workhub`  **Value:** your Netlify address, e.g. `aa-hub.netlify.app`
 3. Netlify turns on HTTPS automatically once the record is found (usually within an hour).
    Your main website isn't affected.
 
@@ -122,7 +122,7 @@ ask Claude for a fresh one.
 ### 8. Invite the team
 
 In the hub, click **Team**, add each person's name and email, choose **editor** or
-**viewer**, and tell them to go to **hub.advancedaluminum.com** and sign in with that email.
+**viewer**, and tell them to go to **workhub.advancedaluminum.com** and sign in with that email.
 No Claude account is needed.
 
 ---
