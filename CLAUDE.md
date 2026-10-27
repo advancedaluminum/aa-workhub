@@ -1,4 +1,4 @@
-# AA Hub — notes for Claude Code
+# WorkHub: notes for Claude Code
 
 Advanced Aluminum's job costing app (Brevard County, FL: pool enclosures, patio enclosures,
 sunrooms, cover areas, screen rooms). Static site in `public/`, Supabase backend.

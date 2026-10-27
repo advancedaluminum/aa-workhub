@@ -1,4 +1,4 @@
-# AA Hub
+# WorkHub
 
 Advanced Aluminum's job costing app, moved off Claude.ai so the team can use it at
 **workhub.advancedaluminum.com** with their own sign-in.

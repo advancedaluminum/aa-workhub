@@ -24,7 +24,7 @@
   /* ------------------------------------------------------------------ */
   var gate = $("#signin");
   function showGate(html) {
-    gate.innerHTML = '<div class="si-card"><img src="logo-sm.png" alt="Advanced Aluminum" width="600" height="249"><h1 class="si-title">AA <span>Hub</span></h1>' + html + "</div>";
+    gate.innerHTML = '<div class="si-card"><img src="logo-sm.png" alt="Advanced Aluminum" width="600" height="249"><h1 class="si-title">Work<span>Hub</span></h1>' + html + "</div>";
     gate.hidden = false;
     document.body.classList.add("signed-out");
   }

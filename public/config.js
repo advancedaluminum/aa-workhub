@@ -1,4 +1,4 @@
-// Supabase connection for AA Hub.
+// Supabase connection for WorkHub.
 // Project URL: Project Settings -> General (project ID) or the Connect button.
 // Key: Project Settings -> API Keys (publishable key, sb_publishable_...).
 // Both values are safe to publish: the database's security rules decide who can see anything.

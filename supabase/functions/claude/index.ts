@@ -1,6 +1,6 @@
 // Supabase Edge Function: "claude"
 //
-// Reads bills and writes job insights for the AA Hub app by calling the
+// Reads bills and writes job insights for the WorkHub app by calling the
 // Claude API. The company's Claude API key stays here on the server; the
 // browser never sees it. Only signed-in people on the team list can use it.
 //
