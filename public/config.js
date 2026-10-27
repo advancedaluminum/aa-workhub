@@ -1,7 +1,8 @@
-// Fill in the two values from your Supabase project:
-// Project URL: Project Settings -> Data API. Key: Project Settings -> API Keys (publishable key, sb_publishable_...).
+// Supabase connection for AA Hub.
+// Project URL: Project Settings -> General (project ID) or the Connect button.
+// Key: Project Settings -> API Keys (publishable key, sb_publishable_...).
 // Both values are safe to publish: the database's security rules decide who can see anything.
 window.AA_CONFIG = {
-  supabaseUrl: "https://YOUR-PROJECT-ID.supabase.co",
-  supabaseAnonKey: "YOUR-ANON-PUBLIC-KEY"
+  supabaseUrl: "https://ehamiqbdtzpjnxbjkzlr.supabase.co",
+  supabaseAnonKey: "sb_publishable_PWmkTCnZnbOw_5IXi-evDA_hMImXBex"
 };
