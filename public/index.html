@@ -769,7 +769,7 @@ code { font-family: var(--font-data); font-size: .9em; background: var(--surface
     var toolbar =
       '<div class="toolbar"><div class="seg" role="group" aria-label="Filter jobs">' +
       filters.map(function (x) { return '<button type="button" data-filter="' + x[0] + '" aria-pressed="' + (f === x[0]) + '">' + x[1] + "</button>"; }).join("") +
-      '</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="importBtn" type="button"' + (readOnly ? " disabled" : "") + '>Import old jobs</button><button class="btn primary" id="newJob" type="button"' + (readOnly ? " disabled" : "") + '>+ New estimate</button></div></div>';
+      '</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" id="newJob" type="button"' + (readOnly ? " disabled" : "") + '>+ New estimate</button></div></div>';
 
     var rows;
     if (!all.length) {
@@ -785,7 +785,6 @@ code { font-family: var(--font-data); font-size: .9em; background: var(--surface
     main.querySelectorAll("[data-filter]").forEach(function (b) { b.addEventListener("click", function () { view.filter = b.dataset.filter; renderList(); }); });
     main.querySelectorAll("[data-job]").forEach(function (b) { b.addEventListener("click", function () { openJob(b.dataset.job); }); });
     var nb = $("#newJob"); if (nb) nb.addEventListener("click", newJob);
-    var ib = $("#importBtn"); if (ib) ib.addEventListener("click", function () { go({ name: "import" }); });
   }
   function tile(label, big, small) {
     return '<div class="tile"><span class="lbl">' + esc(label) + '</span><span class="big">' + big + '</span><span class="small">' + esc(small) + "</span></div>";
