@@ -18,6 +18,10 @@ PDF and Excel reports, and spreadsheet import.
 | Claude features | `supabase/functions/claude/index.ts` | Reads bills and writes insights with the company's Claude API key, kept on the server. |
 | Hosting | `netlify.toml` | Tells Netlify to publish the `public` folder. |
 
+**Signing in:** people sign in with their email and a password. The first time (and if they
+forget their password) they ask for a 6-digit code by email, sign in with it, and choose a
+password. So the app only sends an email when someone joins or resets their password.
+
 **Who can see what:** only people on the Team list can sign in and see anything.
 *Editors* can add and change jobs and bills, *viewers* can only look, and *admins* can also
 manage the Team list. This is enforced by the database itself, not just the app.
@@ -55,7 +59,10 @@ start.
    ```
    <p>Your sign-in code: <strong>{{ .Token }}</strong></p>
    ```
-3. **Recommended:** Supabase's built-in email sender only sends a few emails an hour. Under
+3. **Authentication → Sign In / Providers → Email:** keep **Confirm email** turned on. It's
+   what stops someone from creating an account with a teammate's email address.
+4. **Optional:** Supabase's built-in email sender only sends a few emails an hour. Because
+   people use passwords day to day, that's enough for a small team. Under
    **Authentication → Emails → SMTP Settings**, connect your company email
    (Google Workspace, Microsoft 365) or a sending service, so sign-in emails come from
    your own address and aren't limited.
@@ -125,8 +132,11 @@ ask Claude for a fresh one.
 ### 8. Invite the team
 
 In the hub, click **Team**, add each person's name and email, choose **editor** or
-**viewer**, and tell them to go to **workhub.advancedaluminum.com** and sign in with that email.
-No Claude account is needed.
+**viewer**, and send them to **workhub.advancedaluminum.com**. The first time, they click
+**Email me a sign-in code**, enter the code, and choose a password. After that they sign in
+with email and password. No Claude account is needed.
+
+Anyone can change their password from **Password** at the top of the app.
 
 ---
 

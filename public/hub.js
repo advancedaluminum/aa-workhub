@@ -43,27 +43,69 @@
   window.aaSupabase = sb;
   var me = null; // {id, email, name, role}
 
-  function emailForm(msg) {
+  function lastEmail() { try { return localStorage.getItem("aa-last-email") || ""; } catch (e) { return ""; } }
+  function rememberEmail(email) { try { localStorage.setItem("aa-last-email", email); } catch (e) {} }
+  var EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+  // Everyday sign-in: email and password. No email is sent.
+  function passwordForm(msg) {
     showGate(
-      '<p class="si-text">Sign in with your work email. We\'ll email you a sign-in link and a 6-digit code.</p>' +
+      '<p class="si-text">Sign in with your work email and password.</p>' +
+      '<form class="si-form" id="siPwForm" novalidate>' +
+      '<label for="siEmail">Email</label><input id="siEmail" type="email" autocomplete="username" inputmode="email" required placeholder="you@advancedaluminum.com">' +
+      '<label for="siPw">Password</label><input id="siPw" type="password" autocomplete="current-password" required>' +
+      '<button class="btn primary" type="submit">Sign in</button></form>' +
+      '<p class="si-msg" id="siMsg" role="status">' + esc(msg || "") + "</p>" +
+      '<p class="si-text si-small">First time here, or forgot your password?<br><button class="linkbtn" type="button" id="siToCode">Email me a sign-in code</button></p>'
+    );
+    var email = $("#siEmail"), pw = $("#siPw");
+    email.value = lastEmail();
+    (email.value ? pw : email).focus();
+    $("#siToCode").addEventListener("click", function () { codeRequestForm("", email.value.trim().toLowerCase()); });
+    $("#siPwForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      var em = email.value.trim().toLowerCase();
+      if (!EMAIL_RE.test(em)) { $("#siMsg").textContent = "Enter a valid email address."; return; }
+      if (!pw.value) { $("#siMsg").textContent = "Enter your password."; return; }
+      rememberEmail(em);
+      var btn = e.target.querySelector("button"); btn.disabled = true; btn.textContent = "Signing in…";
+      sb.auth.signInWithPassword({ email: em, password: pw.value }).then(function (res) {
+        if (res.error) {
+          btn.disabled = false; btn.textContent = "Sign in";
+          $("#siMsg").textContent = /invalid|credentials/i.test(res.error.message)
+            ? "Email or password is wrong. If you haven't set a password yet, use “Email me a sign-in code” below."
+            : "Couldn't sign in: " + res.error.message;
+        }
+        // a successful sign-in arrives through onAuthStateChange below
+      });
+    });
+  }
+
+  // First time or forgotten password: email a one-time code, then set a password.
+  function codeRequestForm(msg, prefill) {
+    showGate(
+      '<p class="si-text">We\'ll email you a 6-digit code. After you sign in with it, you\'ll choose a password for next time.</p>' +
       '<form class="si-form" id="siEmailForm" novalidate>' +
       '<label for="siEmail">Email</label><input id="siEmail" type="email" autocomplete="email" inputmode="email" required placeholder="you@advancedaluminum.com">' +
-      '<button class="btn primary" type="submit">Email me a sign-in code</button></form>' +
-      '<p class="si-msg" id="siMsg" role="status">' + esc(msg || "") + "</p>"
+      '<button class="btn primary" type="submit">Email me a code</button></form>' +
+      '<p class="si-msg" id="siMsg" role="status">' + esc(msg || "") + "</p>" +
+      '<button class="linkbtn" type="button" id="siToPw">Sign in with my password instead</button>'
     );
     var f = $("#siEmailForm"), input = $("#siEmail");
-    try { input.value = localStorage.getItem("aa-last-email") || ""; } catch (e) {}
+    input.value = prefill || lastEmail();
     input.focus();
+    $("#siToPw").addEventListener("click", function () { passwordForm(); });
     f.addEventListener("submit", function (e) {
       e.preventDefault();
       var email = input.value.trim().toLowerCase();
-      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { $("#siMsg").textContent = "Enter a valid email address."; return; }
-      try { localStorage.setItem("aa-last-email", email); } catch (e2) {}
+      if (!EMAIL_RE.test(email)) { $("#siMsg").textContent = "Enter a valid email address."; return; }
+      rememberEmail(email);
       var btn = f.querySelector("button"); btn.disabled = true; btn.textContent = "Sending…";
+      try { sessionStorage.setItem("aa-set-password", "1"); } catch (e2) {}
       sb.auth.signInWithOtp({ email: email, options: { emailRedirectTo: location.origin + location.pathname } }).then(function (res) {
         if (res.error) {
-          btn.disabled = false; btn.textContent = "Email me a sign-in code";
-          $("#siMsg").textContent = /rate|seconds/i.test(res.error.message) ? "A code was sent a moment ago. Wait a minute, then try again." : "We couldn't send the email: " + res.error.message;
+          btn.disabled = false; btn.textContent = "Email me a code";
+          $("#siMsg").textContent = /rate|seconds|security purposes/i.test(res.error.message) ? "A code was sent a moment ago. Wait a minute, then try again." : "We couldn't send the email: " + res.error.message;
           return;
         }
         codeForm(email);
@@ -73,23 +115,59 @@
 
   function codeForm(email) {
     showGate(
-      '<p class="si-text">We sent an email to <b>' + esc(email) + '</b>. Click the link in it, or type the 6-digit code here.</p>' +
+      '<p class="si-text">We sent an email to <b>' + esc(email) + '</b>. Type the 6-digit code from it here, or click the link in the email.</p>' +
       '<form class="si-form" id="siCodeForm" novalidate>' +
       '<label for="siCode">Code</label><input id="siCode" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="123456">' +
-      '<button class="btn primary" type="submit">Sign in</button></form>' +
+      '<button class="btn primary" type="submit">Continue</button></form>' +
       '<p class="si-msg" id="siMsg" role="status"></p>' +
       '<button class="linkbtn" type="button" id="siBack">Use a different email</button>'
     );
     $("#siCode").focus();
-    $("#siBack").addEventListener("click", function () { emailForm(); });
+    $("#siBack").addEventListener("click", function () { codeRequestForm(); });
     $("#siCodeForm").addEventListener("submit", function (e) {
       e.preventDefault();
       var token = $("#siCode").value.replace(/\s/g, "");
       if (!/^\d{6,10}$/.test(token)) { $("#siMsg").textContent = "Enter the code from the email."; return; }
       var btn = e.target.querySelector("button"); btn.disabled = true; btn.textContent = "Checking…";
       sb.auth.verifyOtp({ email: email, token: token, type: "email" }).then(function (res) {
-        if (res.error) { btn.disabled = false; btn.textContent = "Sign in"; $("#siMsg").textContent = "That code didn't work. Check it, or send a new one."; }
-        // a successful sign-in arrives through onAuthStateChange below
+        if (res.error) { btn.disabled = false; btn.textContent = "Continue"; $("#siMsg").textContent = "That code didn't work. Check it, or send a new one."; }
+      });
+    });
+  }
+
+  // Choose a password (after signing in with a code). Also used from "Change password".
+  function passwordFields(prefix) {
+    return '<label for="' + prefix + 'New">New password</label><input id="' + prefix + 'New" type="password" autocomplete="new-password" minlength="8" required>' +
+      '<label for="' + prefix + 'Again">Type it again</label><input id="' + prefix + 'Again" type="password" autocomplete="new-password" minlength="8" required>';
+  }
+  function savePassword(prefix, msgEl) {
+    var a = $("#" + prefix + "New").value, b = $("#" + prefix + "Again").value;
+    if (a.length < 8) { msgEl.textContent = "Use at least 8 characters."; return Promise.resolve(false); }
+    if (a !== b) { msgEl.textContent = "The two passwords don't match."; return Promise.resolve(false); }
+    return sb.auth.updateUser({ password: a, data: { has_password: true } }).then(function (res) {
+      if (res.error) {
+        msgEl.textContent = /same|different/i.test(res.error.message) ? "That's your current password. Choose a new one." : "Couldn't save the password: " + res.error.message;
+        return false;
+      }
+      return true;
+    });
+  }
+  function setPasswordForm(onDone) {
+    showGate(
+      '<p class="si-text">You\'re signed in. Choose a password so next time you can sign in without waiting for an email.</p>' +
+      '<form class="si-form" id="siSetPw" novalidate>' + passwordFields("sp") +
+      '<button class="btn primary" type="submit">Save password and continue</button></form>' +
+      '<p class="si-msg" id="siMsg" role="status"></p>' +
+      '<button class="linkbtn" type="button" id="siSkip">Skip for now</button>'
+    );
+    $("#spNew").focus();
+    $("#siSkip").addEventListener("click", function () { try { sessionStorage.removeItem("aa-set-password"); } catch (e) {} onDone(); });
+    $("#siSetPw").addEventListener("submit", function (e) {
+      e.preventDefault();
+      var btn = e.target.querySelector("button"); btn.disabled = true;
+      savePassword("sp", $("#siMsg")).then(function (ok) {
+        btn.disabled = false;
+        if (ok) { try { sessionStorage.removeItem("aa-set-password"); } catch (e2) {} onDone(); }
       });
     });
   }
@@ -104,16 +182,21 @@
   }
 
   var started = false;
+  function enterApp() {
+    hideGate();
+    renderUserMenu();
+    if (!started) { started = true; resolveReady(); }
+  }
   function onSession(session) {
-    if (!session) { me = null; if (started) location.reload(); else emailForm(); return; }
+    if (!session) { me = null; if (started) location.reload(); else passwordForm(); return; }
     if (me && me.id === session.user.id) return;
     var email = String(session.user.email || "").toLowerCase();
     sb.from("members").select("email,name,role").eq("email", email).maybeSingle().then(function (res) {
       if (res.error || !res.data) { notOnTeam(email); return; }
       me = { id: session.user.id, email: email, name: res.data.name || "", role: res.data.role };
-      hideGate();
-      renderUserMenu();
-      if (!started) { started = true; resolveReady(); }
+      var asked = false; try { asked = sessionStorage.getItem("aa-set-password") === "1"; } catch (e) {}
+      var hasPw = !!(session.user.user_metadata && session.user.user_metadata.has_password);
+      if (asked || !hasPw) setPasswordForm(enterApp); else enterApp();
     });
   }
   sb.auth.onAuthStateChange(function (event, session) {
@@ -122,21 +205,39 @@
   });
 
   /* ------------------------------------------------------------------ */
-  /* Signed-in header: who you are, Team (admins), Sign out               */
+  /* Signed-in header: who you are, Team (admins), password, Sign out     */
   /* ------------------------------------------------------------------ */
   function renderUserMenu() {
     var box = $("#userMenu"); if (!box) return;
     box.innerHTML = '<span class="um-who" title="' + esc(me.email) + '">' + esc(me.name || me.email) + (me.role === "viewer" ? " · view only" : "") + "</span>" +
       (me.role === "admin" ? '<button class="btn ghost sm" type="button" id="umTeam">Team</button>' : "") +
+      '<button class="btn ghost sm" type="button" id="umPw">Password</button>' +
       '<button class="btn ghost sm" type="button" id="umOut">Sign out</button>';
     $("#umOut").addEventListener("click", function () { sb.auth.signOut(); });
+    $("#umPw").addEventListener("click", togglePassword);
     var t = $("#umTeam"); if (t) t.addEventListener("click", toggleTeam);
+  }
+
+  function togglePassword() {
+    var p = $("#teamPanel");
+    if (!p.hidden && p.dataset.mode === "password") { p.hidden = true; return; }
+    p.dataset.mode = "password"; p.hidden = false;
+    p.innerHTML = '<h3>Change password</h3><p class="sub">Signed in as ' + esc(me.email) + '. Use at least 8 characters.</p>' +
+      '<form class="si-form pw-form" id="cpForm" novalidate>' + passwordFields("cp") +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" type="submit">Save password</button><button class="btn ghost" type="button" id="cpClose">Close</button></div></form>' +
+      '<p class="help" id="cpMsg" role="status"></p>';
+    $("#cpNew").focus();
+    $("#cpClose").addEventListener("click", function () { p.hidden = true; });
+    $("#cpForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      savePassword("cp", $("#cpMsg")).then(function (ok) { if (ok) { $("#cpMsg").textContent = "Password saved. Use it next time you sign in."; $("#cpNew").value = ""; $("#cpAgain").value = ""; } });
+    });
   }
 
   function toggleTeam() {
     var p = $("#teamPanel");
-    if (!p.hidden) { p.hidden = true; return; }
-    p.hidden = false;
+    if (!p.hidden && p.dataset.mode === "team") { p.hidden = true; return; }
+    p.dataset.mode = "team"; p.hidden = false;
     loadTeam();
   }
   function loadTeam(msg) {
@@ -157,7 +258,7 @@
           '<div class="field"><label for="tmEmail">Email</label><div class="input"><input class="text" id="tmEmail" type="email" autocomplete="off" placeholder="jane@advancedaluminum.com"></div></div>' +
           '<div class="field"><label for="tmRole">Access</label><div class="input"><select id="tmRole"><option value="editor">editor</option><option value="viewer">viewer</option><option value="admin">admin</option></select></div></div>' +
           '<button class="btn primary" type="submit">Add to team</button></form>' +
-        '<p class="help" id="tmMsg" role="status">' + esc(msg || "Once added, tell them to go to this site and sign in with that email.") + "</p>" +
+        '<p class="help" id="tmMsg" role="status">' + esc(msg || "Once added, send them to this site. The first time, they click \u201cEmail me a sign-in code\u201d, then choose a password.") + "</p>" +
         '<div class="tm-import"><h3>Move data from the Claude app</h3>' +
           '<p class="sub">Choose the backup file (<code>aa-job-costing-backup-….json</code>) and all the bill PDFs from the <code>bill-files</code> folder together. Jobs that are already here are updated, not duplicated, so it\'s safe to run again.</p>' +
           '<input type="file" id="tmImportFiles" multiple accept=".json,application/json,application/pdf,image/*">' +
@@ -170,7 +271,7 @@
         var email = $("#tmEmail").value.trim().toLowerCase();
         if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { $("#tmMsg").textContent = "Enter a valid email address."; return; }
         sb.from("members").upsert({ email: email, name: $("#tmName").value.trim() || null, role: $("#tmRole").value }).then(function (r) {
-          loadTeam(r.error ? "Couldn't add them: " + r.error.message : "Added " + email + ". Tell them to sign in at " + location.host + " with that email.");
+          loadTeam(r.error ? "Couldn't add them: " + r.error.message : "Added " + email + ". Send them to " + location.host + ". The first time, they click \u201cEmail me a sign-in code\u201d and then choose a password.");
         });
       });
       p.querySelectorAll("[data-role]").forEach(function (s) {
