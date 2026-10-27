@@ -6,10 +6,11 @@
 //
 // Secrets (Supabase dashboard -> Edge Functions -> Secrets):
 //   ANTHROPIC_API_KEY    required - from console.anthropic.com
+//   AA_PUBLIC_KEY        required - your Supabase publishable key (sb_publishable_...)
 //   CLAUDE_MODEL         optional - model for insights and scanned bills (default below)
 //   CLAUDE_MODEL_QUICK   optional - faster, cheaper model for reading text bills
 //   ALLOWED_ORIGIN       optional - e.g. https://hub.advancedaluminum.com (default: any)
-// SUPABASE_URL and SUPABASE_ANON_KEY are provided by Supabase automatically.
+// SUPABASE_URL is provided by Supabase automatically.
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
@@ -40,7 +41,9 @@ Deno.serve(async (req) => {
   // Who is asking? Must be signed in and on the team list.
   const auth = req.headers.get("Authorization") ?? "";
   if (!auth.startsWith("Bearer ")) return reply(401, { error: "Sign in first." });
-  const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
+  const publicKey = Deno.env.get("AA_PUBLIC_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
+  if (!publicKey) return reply(500, { error: "Add the AA_PUBLIC_KEY secret (your Supabase publishable key) to this function.", code: "not_granted" });
+  const supabase = createClient(Deno.env.get("SUPABASE_URL")!, publicKey, {
     global: { headers: { Authorization: auth } },
   });
   const { data: userData, error: userErr } = await supabase.auth.getUser();

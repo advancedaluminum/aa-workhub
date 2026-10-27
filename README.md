@@ -76,14 +76,16 @@ In Supabase, open **Edge Functions → Deploy a new function → Via editor**.
    **Deploy**.
 3. Open **Edge Functions → Secrets** and add:
    - `ANTHROPIC_API_KEY` = the key from step 3
+   - `AA_PUBLIC_KEY` = your Supabase **publishable** key (`sb_publishable_…`, from
+     **Project Settings → API Keys**)
    - `ALLOWED_ORIGIN` = `https://hub.advancedaluminum.com`
 
 (If you use the Supabase command line instead: `supabase functions deploy claude`.)
 
 ### 5. Connect the app to the database and publish it
 
-1. In Supabase, open **Project Settings → API** and copy the **Project URL** and the
-   **anon public** key.
+1. In Supabase, copy the **Project URL** (**Project Settings → Data API**) and the
+   **publishable** key (**Project Settings → API Keys**, starts with `sb_publishable_`).
 2. On GitHub, open `public/config.js`, click the pencil to edit, paste the two values in
    place of the placeholders, and **Commit changes**. (Both are safe to publish; the
    database's security rules protect the data.)
