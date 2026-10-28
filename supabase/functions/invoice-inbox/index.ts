@@ -85,7 +85,7 @@ function buildPrompt(jobs: Job[], email: { from: string; subject: string }) {
     '"total": final amount owed for this bill including tax and freight as a number (negative for a credit memo), "subtotal": number or null, "tax": number or null, "freight": number or null, ' +
     '"jobReference": "the customer, job, PO or ship-to name written on the bill, exactly as written, or empty string", "isCredit": true or false, ' +
     '"jobId": "the id of the job this bill is for, or empty string if none fits", "confidence": "high only if the customer name on the bill clearly matches exactly one job, otherwise medium or low", ' +
-    '"reason": "one short sentence on how you matched it or why you couldn\'t", "notes": "one short sentence on anything unclear, or empty string"}\n' +
+    '"reason": "one short sentence on how you matched it or why you could not", "notes": "one short sentence on anything unclear, or empty string"}\n' +
     "Use the bill's own total line, not a running balance or a statement total across several invoices.";
 }
 
