@@ -587,6 +587,8 @@ code { font-family: var(--font-data); font-size: .9em; background: var(--surface
 
 /* customer presentation */
 body.presenting .top, body.presenting .mainnav, body.presenting .foot, body.presenting #banner, body.presenting #ratesPanel { display: none; }
+.other-pill { display: inline-block; font-size: 11.5px; font-weight: 600; color: var(--ink-2); background: var(--line); border-radius: 999px; padding: 1px 8px; white-space: nowrap; }
+.help.warn { color: var(--warn); font-weight: 600; }
 .pres { display: flex; flex-direction: column; gap: 14px; padding-top: 14px; }
 .pres-bar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; }
 .pres-choice { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
@@ -3390,6 +3392,27 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
     if (cc.mode === "us" && num(cc.cost) > 0) addAmt("Site & fees", "Concrete (subcontracted, handled by us)", num(cc.cost) / marginDiv, num(cc.cost), "sub");
     if (E.permit !== false) add("Site & fees", "Engineering & building permit", 1, "permit", "each", "fee");
 
+    // other items added by hand (built into the price, never listed on the customer's sheet)
+    var otherHrs = 0;
+    (E.other || []).forEach(function (o) {
+      var label = String(o.desc || "").trim() || "Other item (no description)", qn = num(o.qty);
+      var ln = null;
+      if (o.kind === "labor") {
+        if (!(qn > 0)) return;
+        otherHrs += qn;
+        ln = { sec: "Other items", label: label, qty: qn, unit: "team hr", unitPrice: num(P.laborRate.price), unitCost: num(rates.teamRate), price: qn * num(P.laborRate.price), cost: qn * num(rates.teamRate), kind: "labor", other: true };
+      } else {
+        if (blank(o.qty)) qn = 1;
+        var amt = num(o.amount); if (!(qn > 0) || !(amt > 0)) return;
+        var asCost = o.amountType !== "price";
+        var up = asCost ? amt / marginDiv : amt, uc = asCost ? amt : amt * marginDiv;
+        ln = { sec: "Other items", label: label, qty: qn, unit: "each", unitPrice: up, unitCost: uc, price: qn * up, cost: qn * uc, kind: o.kind === "sub" ? "sub" : "mat", other: true };
+      }
+      ln.noDesc = !String(o.desc || "").trim();
+      lines.push(ln);
+      outs["other-" + o.id] = money(ln.price, true);
+    });
+
     // labor
     var table = pricebook.labor[E.type] || pricebook.labor.screen;
     var base = SV ? { hrs: num((E.service || {}).hours), note: "Hours entered for this service call" } : laborFromTable(table, RS ? screenArea : footprint, pricebook.laborMode);
@@ -3439,7 +3462,7 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
       lines: lines, secs: secs, missing: missing, outs: outs, footprint: footprint, screenArea: screenArea, compositeSqft: compositeSqft, kickLf: kickLf, windowSqft: windowSqft,
       baseHrs: base.hrs, baseNote: base.note, extras: extras, extraHrs: extraHrs, calcHrs: calcHrs, hours: hours, overridden: overridden, laborRate: rate, flags: flags,
       subtotal: subtotal, design: design, military: military, discount: discount, total: total, tiers: tiers,
-      matCost: matCost, subs: subs, eng: eng, teamHours: hours + demoHrs
+      matCost: matCost, subs: subs, eng: eng, teamHours: hours + demoHrs + otherHrs, otherHrs: otherHrs
     };
   }
 
@@ -3503,7 +3526,7 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
       doors: { screen: 1, prime: 0, sliding: 0, french: 0 },
       gutter: { size: "none", lf: "" }, color: "white",
       tearout: false, demoHrs: "", concrete: { mode: "none", cost: "" }, permit: true,
-      designMeasure: !!pricebook.includeDesignMeasure, military: false, discount: "", hoursOverride: "", notes: "",
+      designMeasure: !!pricebook.includeDesignMeasure, military: false, discount: "", hoursOverride: "", notes: "", other: [],
       status: "draft", tier: "", jobId: "", createdAt: new Date().toISOString()
     };
     E._id = id; estimates.set(id, E); estSave(id, 0);
@@ -3729,6 +3752,7 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
         q("Charge design and measure?", yesNo("designMeasure", E.designMeasure), "$" + num(pricebook.items.designFee.price) + " design plus " + Math.round(num(pricebook.measurePct) * 100) + "% of the price for the measure") +
         q("Military discount (" + Math.round(num(pricebook.militaryPct) * 100) + "%)?", yesNo("military", E.military)) +
         '<div class="field" style="max-width:260px"><label for="disc">Other discount</label><div class="input"><span class="pre">$</span><input id="disc" data-e="discount" data-kind="num" inputmode="decimal" value="' + esc(blank(E.discount) ? "" : E.discount) + '" placeholder="0"></div></div>' +
+        otherItemsHtml(E) +
         '<div class="field"><label for="enotes">Notes for the office</label><textarea class="notes text" id="enotes" data-e="notes" data-kind="text" placeholder="Access, HOA, existing slab condition…">' + esc(E.notes || "") + "</textarea></div>";
     }
     if (key === "labor") {
@@ -3773,6 +3797,22 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
     return "";
   }
 
+  function otherItemsHtml(E) {
+    return '<h4 class="mini-h">Other items</h4><p class="sub" style="margin-top:-4px">For anything unusual this estimate doesn\'t cover. It\'s built into the price' + (singlePrice(E) ? "" : " (and scales with Essential and Legacy)") + " and isn\'t listed on the customer\'s sheet.</p>" +
+      (E.other || []).map(function (o, i) {
+        var lab = o.kind === "labor";
+        return '<section class="ecard"><div class="ecard-h"><b>Other item ' + (i + 1) + '</b><span class="money" data-out="other-' + o.id + '"></span><button type="button" class="xbtn" data-del-other="' + i + '">Remove</button></div>' +
+          '<div class="field"><label for="on' + i + '">What it\'s for</label>' + tIn("on" + i, "other." + i + ".desc", o.desc, "Crane rental for the second-story roof") +
+            '<span class="help warn" data-desc-warn="' + o.id + '"' + (String(o.desc || "").trim() ? " hidden" : "") + '>Add a short description so the office knows what this is.</span>' + "</div>" +
+          q("What kind of cost?", chips("other." + i + ".kind", [["mat", "Material"], ["labor", "Labor", "Team hours"], ["sub", "Subcontractor"]], o.kind || "mat")) +
+          (lab ? '<div class="field" style="max-width:260px"><label for="oh' + i + '">Hours</label>' + nIn("oh" + i, "other." + i + ".qty", o.qty, "team hrs") + '<span class="help">At ' + usd2.format(num(pricebook.items.laborRate.price)) + " per team hour</span></div>" :
+            q("Is the amount our cost or the customer's price?", chips("other." + i + ".amountType", [["cost", "Our cost", "Marked up to a " + Math.round(num(pricebook.margin) * 100) + "% margin"], ["price", "Customer price", "Used as entered"]], o.amountType || "cost")) +
+            '<div class="grid2"><div class="field"><label for="oq' + i + '">Quantity</label>' + nIn("oq" + i, "other." + i + ".qty", o.qty, "", "1") + "</div>" +
+            '<div class="field"><label for="oa' + i + '">Amount each</label><div class="input"><span class="pre">$</span><input id="oa' + i + '" data-e="other.' + i + '.amount" data-kind="num" inputmode="decimal" value="' + esc(blank(o.amount) ? "" : o.amount) + '" placeholder="0.00"></div></div></div>') +
+          "</section>";
+      }).join("") +
+      '<div class="add-row"><button type="button" class="btn" data-add-other>+ Add other item</button></div>';
+  }
   function bindCustomer(E) {
     // keep the heading in step with the customer name
     var n = $("#cName"); if (n) n.addEventListener("input", function () { var t = main.querySelector(".wz-title"); if (t) t.textContent = estTitle(E); });
@@ -3805,6 +3845,10 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
         refreshWizard(E);
       });
     });
+    var ao = main.querySelector("[data-add-other]"); if (ao) ao.addEventListener("click", function () {
+      E.other = E.other || []; E.other.push({ id: eid(), desc: "", kind: "mat", amountType: "cost", qty: 1, amount: "" }); estSave(E._id, 0); keepScroll(renderWizard);
+    });
+    main.querySelectorAll("[data-del-other]").forEach(function (b) { b.addEventListener("click", function () { E.other.splice(+b.dataset.delOther, 1); estSave(E._id, 0); keepScroll(renderWizard); }); });
     var as = main.querySelector("[data-add-svc]"); if (as) as.addEventListener("click", function () {
       E.service = E.service || { desc: "", hours: "", items: [] }; E.service.items = E.service.items || [];
       E.service.items.push({ id: eid(), key: "", desc: "", qty: 1, cost: "" }); estSave(E._id, 0); keepScroll(renderWizard);
@@ -3860,6 +3904,7 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
       $("#laborFlags").innerHTML = C.flags.map(function (f) { return '<p class="flag">' + esc(f) + "</p>"; }).join("") +
         (C.overridden ? '<p class="flag">Using your override of ' + C.hours + " hours instead of the calculated " + (Math.round(C.calcHrs * 10) / 10) + ".</p>" : "");
     }
+    main.querySelectorAll("[data-desc-warn]").forEach(function (el) { var o = (E.other || []).find(function (x) { return x.id === el.dataset.descWarn; }); el.hidden = !!(o && String(o.desc || "").trim()); });
     if ($("#reviewBody")) drawReview(E, C);
   }
 
@@ -3875,7 +3920,7 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
       '<section class="panel"><h3>' + (one ? EST_TYPES[E.type] + " estimate" : "Signature estimate") + "</h3>" + (one && E.type === "service" && !C.lines.length ? '<p class="sub">Add hours and materials on the Work step.</p>' : "") + '<div class="table-scroll"><table class="ledger rv"><thead><tr><th>Item</th><th>Qty</th><th>Price</th></tr></thead><tbody>' +
         C.secs.map(function (s) {
           return '<tr class="rv-sec"><td colspan="2">' + esc(s.name) + "</td><td>" + money(s.total, true) + "</td></tr>" + s.lines.map(function (l) {
-            return "<tr><td>" + esc(l.label) + (l.missing ? ' <span class="miss-pill">No price</span>' : "") + '</td><td class="muted">' + (l.unit ? (Math.round(l.qty * 10) / 10).toLocaleString("en-US") + " " + l.unit + '<span class="why">@ ' + usd2.format(l.unitPrice) + "</span>" : "") + "</td><td>" + money(l.price, true) + "</td></tr>";
+            return "<tr><td>" + esc(l.label) + (l.missing ? ' <span class="miss-pill">No price</span>' : "") + (l.other ? ' <span class="other-pill">' + (l.kind === "labor" ? "Labor" : l.kind === "sub" ? "Sub" : "Material") + ", added by hand</span>" : "") + '</td><td class="muted">' + (l.unit ? (Math.round(l.qty * 10) / 10).toLocaleString("en-US") + " " + l.unit + '<span class="why">@ ' + usd2.format(l.unitPrice) + "</span>" : "") + "</td><td>" + money(l.price, true) + "</td></tr>";
           }).join("");
         }).join("") +
         (C.military ? '<tr><td>Military discount</td><td></td><td class="neg">−' + money(C.military, true) + "</td></tr>" : "") +
