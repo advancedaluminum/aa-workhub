@@ -664,6 +664,7 @@ body.presenting .top, body.presenting .mainnav, body.presenting .foot, body.pres
 .ps .render-text span { font-size: 11px; color: #aaa; line-height: 1.4; }
 .ps .footer-note { text-align: center; font-size: 11px; color: var(--color-text-secondary); margin-top: 16px; margin-bottom: 0; }
 .ps .footer-note .ti { font-size: 12px; vertical-align: -2px; }
+.ps .tier-grid.one { grid-template-columns: minmax(0, 520px); justify-content: center; }
 .ps .ps-valid { margin-top: 6px; font-weight: 600; color: var(--color-text-primary); }
 @media screen {
   .ps .tier-card.chosen { box-shadow: 0 0 0 3px #fff, 0 0 0 6px var(--good); }
@@ -3120,11 +3121,12 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
   }
 
   /* ---------- field estimator: price book + pricing engine ---------- */
-  var EST_TYPES = { screen: "Screen enclosure", patio: "Patio enclosure", sunroom: "Sunroom" };
-  var EST_JOBTYPE = { screen: "pool", patio: "patio", sunroom: "sunroom" };
+  var EST_TYPES = { screen: "Screen enclosure", patio: "Patio enclosure", sunroom: "Sunroom", rescreen: "Rescreen", service: "Service" };
+  function singlePrice(E) { return E && (E.type === "rescreen" || E.type === "service"); }
+  var EST_JOBTYPE = { screen: "pool", patio: "patio", sunroom: "sunroom", rescreen: "rescreen", service: "service" };
   var SCREEN_TYPES = { "1814": "18/14 standard", "2020": "20/20 No-See-Um", pet: "Pet screen" };
   var ROOF_STYLES = { flat: "Flat", mansard: "Mansard", gable: "Gable", hip: "Hip", dome: "Dome" };
-  var PB_GROUPS = ["Roof", "Walls & screen", "Windows", "Kick plates", "Doors", "Gutters & color", "Site & fees", "Labor"];
+  var PB_GROUPS = ["Roof", "Walls & screen", "Windows", "Kick plates", "Doors", "Gutters & color", "Rescreen", "Site & fees", "Labor"];
   function pbItem(g, label, unit, cost, price, note) { return { g: g, label: label, unit: unit, cost: cost, price: price, note: note || "" }; }
   function pbDefaults() {
     return {
@@ -3167,6 +3169,10 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
         gutter5: pbItem("Gutters & color", "5\" gutter", "lf", 10.56, 13.2),
         gutter7: pbItem("Gutters & color", "7\" gutter", "lf", 16.7, 20.875),
         bronze: pbItem("Gutters & color", "Bronze frame upcharge", "sq ft", 0, 0, "Proposal 1365-1 charged $0 for bronze"),
+        rsRoof: pbItem("Rescreen", "Rescreen roof with 18/14 screen", "sq ft", null, null, "Remove the old screen and install new on an existing roof"),
+        rsWall: pbItem("Rescreen", "Rescreen wall with 18/14 screen", "sq ft", null, null, "Remove the old screen and install new on an existing wall"),
+        rsUp2020: pbItem("Rescreen", "Rescreen upgrade to 20/20", "sq ft", 0.25, 0.2925, "Same difference as the roof screen upgrade (20/20 vs 18/14 rescreen materials)"),
+        rsUpPet: pbItem("Rescreen", "Rescreen upgrade to pet screen", "sq ft", 1.17, 1.4425, "Same difference as the roof screen upgrade (pet vs 18/14 rescreen materials)"),
         demoHour: pbItem("Site & fees", "Tear-out (demo) hour", "hr", null, 427.64),
         permit: pbItem("Site & fees", "Engineering & building permit", "each", null, 900),
         designFee: pbItem("Site & fees", "Design fee", "each", null, 200, "The measure fee (5% of the price) is added with it"),
@@ -3175,7 +3181,8 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
       labor: {
         screen: [[300, 0.20], [600, 0.12], [1200, 0.061], [null, 0.045]],
         patio: [[300, 0.20], [600, 0.12], [1200, 0.061], [null, 0.045]],
-        sunroom: [[150, 0.20], [300, 0.13], [null, 0.11]]
+        sunroom: [[150, 0.20], [300, 0.13], [null, 0.11]],
+        rescreen: [[null, null]]
       },
       laborFlags: { patio: true },
       extraHrs: { kickLf: null, transomLf: null, windowSqft: null, compositeSqft: null },
@@ -3278,13 +3285,34 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
       lines.push({ sec: sec, label: label, qty: 1, unit: "", unitPrice: num(price), unitCost: cost, price: num(price), cost: cost, kind: kind || "mat" });
     }
     var screenT = E.screen || "1814";
+    var RS = E.type === "rescreen", SV = E.type === "service";
+    var rsUp = screenT === "2020" ? "rsUp2020" : screenT === "pet" ? "rsUpPet" : "";
+    var screenArea = 0;
+    // service: materials typed in (priced at cost ÷ margin) or picked from the price book
+    if (SV) {
+      var sv = E.service || {};
+      (sv.items || []).forEach(function (it) {
+        var qn = num(it.qty); if (!(qn > 0)) return;
+        var bi = it.key ? P[it.key] : null, up, uc;
+        if (bi && !(bi.price === null || bi.price === "")) { up = num(bi.price); uc = bi.cost === null || bi.cost === "" ? up * marginDiv : num(bi.cost); }
+        else { uc = num(it.cost); up = uc / marginDiv; }
+        var miss = !(up > 0), label = String(it.desc || "").trim() || (bi ? bi.label : "Material");
+        if (miss && missing.indexOf("Cost for " + label) < 0) missing.push("Cost for " + label);
+        lines.push({ sec: "Materials", label: label, qty: qn, unit: bi ? bi.unit : "each", unitPrice: up, unitCost: uc, price: qn * up, cost: qn * uc, kind: "mat", missing: miss, item: label });
+        outs["svc-" + it.id] = miss ? "Needs a cost" : money(qn * up, true);
+      });
+    }
     // roof
     var footprint = 0, compositeSqft = 0, anyComposite = false;
-    (E.roofs || []).forEach(function (r, i) {
+    (SV ? [] : E.roofs || []).forEach(function (r, i) {
       var w = num(r.width), p = num(r.proj), sq = w * p, nm = "Roof " + (i + 1);
       footprint += sq;
       var before = lines.length;
-      if (r.type === "composite") {
+      if (RS) {
+        screenArea += sq;
+        add(nm, (w || "?") + "' × " + (p || "?") + "' roof rescreen, 18/14", sq, "rsRoof");
+        if (rsUp) add(nm, "Upgrade to " + SCREEN_TYPES[screenT], sq, rsUp);
+      } else if (r.type === "composite") {
         anyComposite = true; compositeSqft += sq;
         var heavy = p > num(pricebook.spanLimit || 13);
         var key = (heavy ? "panel030" : "panel024") + (r.fan ? "fan" : "");
@@ -3304,10 +3332,14 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
 
     // walls
     var kickLf = 0, windowSqft = 0;
-    (E.walls || []).forEach(function (wl, i) {
+    (SV ? [] : E.walls || []).forEach(function (wl, i) {
       var len = num(wl.len), ht = num(wl.ht), area = len * ht, nm = wl.name || "Wall " + (i + 1), before = lines.length;
-      var kh = wl.kick && wl.kick !== "none" ? num(wl.kick) : 0;
-      if (wl.type === "glass" || wl.type === "acrylic") {
+      var kh = !RS && wl.kick && wl.kick !== "none" ? num(wl.kick) : 0;
+      if (RS) {
+        screenArea += area;
+        add(nm, (len || "?") + "' × " + (ht || "?") + "' wall rescreen, 18/14", area, "rsWall");
+        if (rsUp) add(nm, "Upgrade to " + SCREEN_TYPES[screenT], area, rsUp);
+      } else if (wl.type === "glass" || wl.type === "acrylic") {
         var win = Math.max(0, len * (ht - kh / 12));
         windowSqft += win;
         add(nm, "Window wall framing", area, "winFrame");
@@ -3328,7 +3360,7 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
 
     // transom
     var tr = E.transom || {}, trLf = 0;
-    if (tr.on) {
+    if (tr.on && !RS && !SV) {
       trLf = num(tr.lf);
       var trArea = trLf * num(tr.ht);
       if (tr.type === "solid") add("Transom", trLf + " lf × " + num(tr.ht) + "' solid transom (roof panel)", trArea, "panel024");
@@ -3337,7 +3369,8 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
     }
 
     // doors
-    var d = E.doors || {};
+    var d = SV ? {} : E.doors || {};
+    if (RS) d = { screen: d.screen };
     add("Doors", "Screen doors", d.screen, "screenDoor");
     add("Doors", "Door kits", d.screen, "doorKit");
     add("Doors", "Sunroom prime doors", d.prime, "primeDoor");
@@ -3346,18 +3379,21 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
 
     // gutter + color
     var g = E.gutter || {};
-    if (g.size === "5" || g.size === "7") add("Gutter & color", g.size + "\" gutter", g.lf, "gutter" + g.size);
-    if (E.color === "bronze") add("Gutter & color", "Bronze frame", footprint, "bronze");
+    if (!RS && !SV) {
+      if (g.size === "5" || g.size === "7") add("Gutter & color", g.size + "\" gutter", g.lf, "gutter" + g.size);
+      if (E.color === "bronze") add("Gutter & color", "Bronze frame", footprint, "bronze");
+    }
 
     // site & fees
-    add("Site & fees", "Tear-out of existing structure", E.tearout ? E.demoHrs : 0, "demoHour", "hr", "demo");
-    var cc = E.concrete || {};
+    add("Site & fees", "Tear-out of existing structure", E.tearout && !RS && !SV ? E.demoHrs : 0, "demoHour", "hr", "demo");
+    var cc = RS || SV ? {} : E.concrete || {};
     if (cc.mode === "us" && num(cc.cost) > 0) addAmt("Site & fees", "Concrete (subcontracted, handled by us)", num(cc.cost) / marginDiv, num(cc.cost), "sub");
     if (E.permit !== false) add("Site & fees", "Engineering & building permit", 1, "permit", "each", "fee");
 
     // labor
     var table = pricebook.labor[E.type] || pricebook.labor.screen;
-    var base = laborFromTable(table, footprint, pricebook.laborMode);
+    var base = SV ? { hrs: num((E.service || {}).hours), note: "Hours entered for this service call" } : laborFromTable(table, RS ? screenArea : footprint, pricebook.laborMode);
+    if (RS && screenArea > 0 && table.some(function (row) { return row[1] === null || row[1] === ""; })) missing.push("Rescreen labor hours per sq ft");
     var X = pricebook.extraHrs, extras = [], extraHrs = 0;
     function extra(label, qty, rate, unit) {
       if (!(qty > 0)) return;
@@ -3369,7 +3405,7 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
     extra("Windows", windowSqft, X.windowSqft, "sq ft");
     extra("Composite roof", compositeSqft, X.compositeSqft, "sq ft");
     var flags = [];
-    if (pricebook.laborFlags && pricebook.laborFlags[E.type]) flags.push("Patio enclosure labor factors are copied from screen enclosures until you set them.");
+    if (!RS && !SV && pricebook.laborFlags && pricebook.laborFlags[E.type]) flags.push("Patio enclosure labor factors are copied from screen enclosures until you set them.");
     if (E.type === "sunroom" && (E.walls || []).some(function (w) { return w.type !== "screen"; })) flags.push("The sunroom factors are written for screen walls. Glass and acrylic walls may take longer.");
     var calcHrs = base.hrs + extraHrs;
     var overridden = !blank(E.hoursOverride);
@@ -3388,19 +3424,19 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
     var discount = Math.min(num(E.discount), gross - military);
     var total = Math.max(0, gross - military - discount);
     var T = pricebook.tiers;
-    var tiers = { essential: Math.round(total * (1 + num(T.essentialPct))), signature: Math.round(total), legacy: Math.round(total * (1 + num(T.legacyPct))) };
+    var tiers = RS || SV ? { essential: Math.round(total), signature: Math.round(total), legacy: Math.round(total) } : { essential: Math.round(total * (1 + num(T.essentialPct))), signature: Math.round(total), legacy: Math.round(total * (1 + num(T.legacyPct))) };
 
     var sum = function (f) { return lines.filter(f).reduce(function (s, l) { return s + l.price; }, 0); };
     var matCost = lines.filter(function (l) { return l.kind === "mat"; }).reduce(function (s, l) { return s + (l.cost === null ? l.price * marginDiv : l.cost); }, 0);
     var subs = lines.filter(function (l) { return l.kind === "sub"; }).reduce(function (s, l) { return s + (l.cost || 0); }, 0);
     var eng = sum(function (l) { return l.kind === "fee" && /permit/i.test(l.label); });
-    var demoHrs = E.tearout ? num(E.demoHrs) : 0;
+    var demoHrs = E.tearout && !RS && !SV ? num(E.demoHrs) : 0;
 
     var secs = [];
     lines.forEach(function (l) { var s = secs.find(function (x) { return x.name === l.sec; }); if (!s) { s = { name: l.sec, lines: [], total: 0 }; secs.push(s); } s.lines.push(l); s.total += l.price; });
 
     return {
-      lines: lines, secs: secs, missing: missing, outs: outs, footprint: footprint, compositeSqft: compositeSqft, kickLf: kickLf, windowSqft: windowSqft,
+      lines: lines, secs: secs, missing: missing, outs: outs, footprint: footprint, screenArea: screenArea, compositeSqft: compositeSqft, kickLf: kickLf, windowSqft: windowSqft,
       baseHrs: base.hrs, baseNote: base.note, extras: extras, extraHrs: extraHrs, calcHrs: calcHrs, hours: hours, overridden: overridden, laborRate: rate, flags: flags,
       subtotal: subtotal, design: design, military: military, discount: discount, total: total, tiers: tiers,
       matCost: matCost, subs: subs, eng: eng, teamHours: hours + demoHrs
@@ -3413,6 +3449,9 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
   var estSaves = new Map();
   var ev = { sub: "list", id: null, step: 0, bookMsg: "" };
   var EST_STEPS = [["cust", "Customer"], ["roof", "Roof"], ["walls", "Walls"], ["transom", "Transom"], ["doors", "Doors"], ["finish", "Screen & color"], ["site", "Site & fees"], ["labor", "Labor"], ["review", "Review"]];
+  var EST_STEPS_RESCREEN = [["cust", "Customer"], ["roof", "Roof"], ["walls", "Walls"], ["doors", "Doors"], ["finish", "Screen"], ["site", "Fees"], ["labor", "Labor"], ["review", "Review"]];
+  var EST_STEPS_SERVICE = [["cust", "Customer"], ["work", "Work & materials"], ["site", "Fees"], ["review", "Review"]];
+  function estSteps(E) { return E && E.type === "service" ? EST_STEPS_SERVICE : E && E.type === "rescreen" ? EST_STEPS_RESCREEN : EST_STEPS; }
 
   function estPending(id) { var s = estSaves.get(id); return !!(s && (s.timer || s.writing || s.dirty)); }
   function estSave(id, delay) {
@@ -3495,17 +3534,17 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
       !list.length ? '<div class="jobs"><div class="empty"><strong>No field estimates yet</strong>Tap <em>New estimate</em> at the customer\'s home. You\'ll answer questions about the roof, walls, doors and options, and the price builds as you go.</div></div>' :
       '<div class="jobs">' + list.map(function (E) {
         var C = calcEst(E);
-        var meta = [EST_TYPES[E.type], C.footprint ? Math.round(C.footprint).toLocaleString("en-US") + " sq ft" : "", E.estimator ? "by " + E.estimator : "", fmtDate(String(E.updatedAt || E.createdAt || "").slice(0, 10))].filter(Boolean).join(" · ");
+        var meta = [EST_TYPES[E.type], E.type === "rescreen" ? (C.screenArea ? Math.round(C.screenArea).toLocaleString("en-US") + " sq ft of screen" : "") : E.type === "service" ? "" : C.footprint ? Math.round(C.footprint).toLocaleString("en-US") + " sq ft" : "", E.estimator ? "by " + E.estimator : "", fmtDate(String(E.updatedAt || E.createdAt || "").slice(0, 10))].filter(Boolean).join(" · ");
         var st = E.jobId ? "job" : E.status === "presented" ? "presented" : "draft";
         return '<button type="button" class="jrow est-row" data-est="' + esc(E._id) + '"><span class="c-name"><span class="jname">' + esc(E.customer.name || "New customer") + '</span><br><span class="jmeta">' + esc(meta) + "</span></span>" +
-          '<span class="c-status"><span class="pill ' + (st === "job" ? "closed" : st === "presented" ? "active" : "estimate") + '">' + EST_STATUS[st] + (E.tier ? " · " + E.tier.charAt(0).toUpperCase() + E.tier.slice(1) : "") + "</span></span>" +
-          '<span class="c-num r"><span class="cell-lbl">Signature</span><span class="money">' + money(C.tiers.signature) + "</span></span>" +
+          '<span class="c-status"><span class="pill ' + (st === "job" ? "closed" : st === "presented" ? "active" : "estimate") + '">' + EST_STATUS[st] + (E.tier && !singlePrice(E) ? " · " + E.tier.charAt(0).toUpperCase() + E.tier.slice(1) : "") + "</span></span>" +
+          '<span class="c-num r"><span class="cell-lbl">' + (singlePrice(E) ? "Price" : "Signature") + "</span>" + '<span class="money">' + money(C.tiers.signature) + "</span></span>" +
           '<span class="c-num r"><span class="cell-lbl">Labor</span><span class="money">' + (Math.round(C.hours * 10) / 10) + " hrs</span></span>" +
           '<span class="c-num r">' + (C.missing.length ? '<span class="miss-pill">' + C.missing.length + " missing</span>" : '<span class="jmeta">Fully priced</span>') + "</span></button>";
       }).join("") + "</div>");
     $("#estBook").addEventListener("click", function () { estGo({ sub: "book" }); });
     var nb = $("#estNew"); if (nb) nb.addEventListener("click", newEstimate);
-    main.querySelectorAll("[data-est]").forEach(function (b) { b.addEventListener("click", function () { var E = estimates.get(b.dataset.est); estGo({ sub: "wizard", id: b.dataset.est, step: E && E.status !== "draft" ? EST_STEPS.length - 1 : 0 }); }); });
+    main.querySelectorAll("[data-est]").forEach(function (b) { b.addEventListener("click", function () { var E = estimates.get(b.dataset.est); estGo({ sub: "wizard", id: b.dataset.est, step: E && E.status !== "draft" ? estSteps(E).length - 1 : 0 }); }); });
   }
 
   // small builders
@@ -3527,7 +3566,8 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
   function yesNo(path, val) { return chips(path, [[true, "Yes"], [false, "No"]], !!val); }
 
   function renderWizard() {
-    var E = curEst(), step = Math.max(0, Math.min(ev.step, EST_STEPS.length - 1)), key = EST_STEPS[step][0];
+    var E = curEst(), STEPS = estSteps(E), step = Math.max(0, Math.min(ev.step, STEPS.length - 1)), key = STEPS[step][0];
+    if (E.type === "service" && !E.service) E.service = { desc: "", hours: "", items: [] };
     if (key === "walls" && !E.wallsInit) {
       var r0 = (E.roofs || [])[0] || {}, wt = E.type === "sunroom" ? "glass" : "screen";
       E.walls = [newWall("Front", wt, r0.width), newWall("Left side", wt, r0.proj), newWall("Right side", wt, r0.proj)];
@@ -3538,13 +3578,13 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
       '<div class="wz">' +
       '<div class="wz-top"><button class="btn ghost back" type="button" id="wzBack">← All estimates</button><span class="help" id="wzSaved"></span></div>' +
       '<h2 class="wz-title">' + esc(estTitle(E)) + "</h2>" +
-      '<nav class="wz-steps" aria-label="Estimate steps">' + EST_STEPS.map(function (s, i) {
+      '<nav class="wz-steps" aria-label="Estimate steps">' + STEPS.map(function (s, i) {
         return '<button type="button" data-goto="' + i + '"' + (i === step ? ' aria-current="step"' : "") + ' class="' + (i < step ? "done" : "") + '"><b>' + (i + 1) + "</b>" + s[1] + "</button>";
       }).join("") + "</nav>" +
       '<fieldset class="wz-body"' + dis + ">" + stepHtml(key, E) + "</fieldset>" +
       '<div class="wz-foot"><button class="btn" type="button" id="wzPrev"' + (step === 0 ? " disabled" : "") + '>Back</button>' +
-      '<div class="wz-total"><span class="lbl">Signature price</span><span class="money" id="wzTotal"></span><span class="help" id="wzMiss"></span></div>' +
-      (step < EST_STEPS.length - 1 ? '<button class="btn primary" type="button" id="wzNext">Next<span class="nx-name">: ' + EST_STEPS[step + 1][1] + "</span></button>" : '<button class="btn primary" type="button" id="wzPresent">Present to customer</button>') +
+      '<div class="wz-total"><span class="lbl">' + (singlePrice(E) ? "Estimate price" : "Signature price") + '</span><span class="money" id="wzTotal"></span><span class="help" id="wzMiss"></span></div>' +
+      (step < STEPS.length - 1 ? '<button class="btn primary" type="button" id="wzNext">Next<span class="nx-name">: ' + STEPS[step + 1][1] + "</span></button>" : '<button class="btn primary" type="button" id="wzPresent">Present to customer</button>') +
       "</div></div>";
     $("#wzBack").addEventListener("click", function () { estGo({ sub: "list", id: null }); });
     main.querySelectorAll("[data-goto]").forEach(function (b) { b.addEventListener("click", function () { estGo({ step: +b.dataset.goto }); }); });
@@ -3568,8 +3608,24 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
           '<div class="field"><label for="cEst">Estimator</label>' + tIn("cEst", "estimator", E.estimator, "Your name") + "</div>" +
           '<div class="field span2"><label for="cAddr">Project address</label>' + tIn("cAddr", "customer.address", E.customer.address, "727 Carriage Hill Rd, Melbourne") + "</div>" +
         "</div>" +
-        q("What are we building?", chips("type", [["screen", "Screen enclosure", "Screen roof and walls"], ["patio", "Patio enclosure", "Usually a composite roof"], ["sunroom", "Sunroom", "Composite roof, windows"]], E.type),
-          "This sets the labor factors, the kick plate type and the starting answers for the roof and walls. Every answer can still be changed.");
+        q("What kind of project?", chips("type", [["screen", "Screen enclosure", "Screen roof and walls"], ["patio", "Patio enclosure", "Usually a composite roof"], ["sunroom", "Sunroom", "Composite roof, windows"], ["rescreen", "Rescreen", "New screen on an existing enclosure"], ["service", "Service", "Repairs, priced by hours and materials"]], E.type),
+          "This sets the questions, the labor factors and the starting answers. Every answer can still be changed.");
+    }
+    if (key === "roof" && E.type === "rescreen") {
+      return '<h3 class="step-h">Roof</h3><p class="sub">Enter each roof section being rescreened. If only the walls are being rescreened, remove the roof section.</p>' +
+        (E.roofs || []).map(function (r, i) {
+          return '<section class="ecard"><div class="ecard-h"><b>Roof section ' + (i + 1) + '</b><span class="money" data-out="roof-' + r.id + '"></span><button type="button" class="xbtn" data-del-roof="' + i + '">Remove</button></div>' +
+            '<div class="grid2">' +
+              '<div class="field"><label for="rw' + i + '">Width along the house</label>' + nIn("rw" + i, "roofs." + i + ".width", r.width, "ft") + "</div>" +
+              '<div class="field"><label for="rp' + i + '">Projection out from the house</label>' + nIn("rp" + i, "roofs." + i + ".proj", r.proj, "ft") + "</div>" +
+            "</div>" +
+            '<details class="adder"' + (num(r.adder) ? " open" : "") + '><summary>Anything unusual about this roof? (height, access, odd shape)</summary><div class="grid2">' +
+              '<div class="field"><label for="ra' + i + '">Extra price</label><div class="input"><span class="pre">$</span><input id="ra' + i + '" data-e="roofs.' + i + '.adder" data-kind="num" inputmode="decimal" value="' + esc(blank(r.adder) ? "" : r.adder) + '" placeholder="0"></div></div>' +
+              '<div class="field"><label for="rn' + i + '">What it\'s for</label>' + tIn("rn" + i, "roofs." + i + ".adderNote", r.adderNote, "Two-story roof") + "</div></div></details>" +
+            "</section>";
+        }).join("") +
+        (!(E.roofs || []).length ? '<div class="empty" style="padding:18px 8px">No roof rescreen. Walls only.</div>' : "") +
+        '<div class="add-row"><button type="button" class="btn" data-add-roof="screen">+ Add roof section</button></div>';
     }
     if (key === "roof") {
       return '<h3 class="step-h">Roof</h3><p class="sub">Start with the roof. The footprint you enter here is the square footage used for labor. If part of the roof is screen and part is composite, add a second section.</p>' +
@@ -3592,6 +3648,17 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
             "</section>";
         }).join("") +
         '<div class="add-row"><button type="button" class="btn" data-add-roof="screen">+ Add screen roof section</button><button type="button" class="btn" data-add-roof="composite">+ Add composite roof section</button></div>';
+    }
+    if (key === "walls" && E.type === "rescreen") {
+      return '<h3 class="step-h">Walls</h3><p class="sub">Enter each wall being rescreened, length and height. Lengths start from the roof size. Remove any wall that isn\'t being rescreened.</p>' +
+        (E.walls || []).map(function (w, i) {
+          return '<section class="ecard"><div class="ecard-h"><input class="wall-name text" data-e="walls.' + i + '.name" data-kind="text" value="' + esc(w.name || "Wall " + (i + 1)) + '" aria-label="Wall name"><span class="money" data-out="wall-' + w.id + '"></span><button type="button" class="xbtn" data-del-wall="' + i + '">Remove</button></div>' +
+            '<div class="grid2">' +
+              '<div class="field"><label for="wl' + i + '">Length</label>' + nIn("wl" + i, "walls." + i + ".len", w.len, "ft") + "</div>" +
+              '<div class="field"><label for="wh' + i + '">Height</label>' + nIn("wh" + i, "walls." + i + ".ht", w.ht, "ft") + "</div>" +
+            "</div></section>";
+        }).join("") +
+        '<div class="add-row"><button type="button" class="btn" data-add-wall>+ Add a wall</button>' + (E.walls.length > 1 ? '<button type="button" class="btn" data-same-walls>Make all walls match the first</button>' : "") + "</div>";
     }
     if (key === "walls") {
       return '<h3 class="step-h">Walls</h3><p class="sub">Most jobs have three walls, with the house as the fourth. Lengths start from the roof size; enter the height of each wall. Add or remove walls to match the job.</p>' +
@@ -3621,6 +3688,10 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
           q("Transom material", chips("transom.type", [["screen", "Screen"], ["solid", "Solid", "Uses roof panels"]], t.type || "screen")) +
           '<p class="help" data-out="transom"></p>' : "");
     }
+    if (key === "doors" && E.type === "rescreen") {
+      return '<h3 class="step-h">Doors</h3><p class="sub">Any screen doors being replaced while we\'re there?</p>' +
+        '<div class="door-grid">' + q("New screen doors", stepper("dS", "doors.screen", (E.doors || {}).screen), "Each one includes a door kit.") + "</div>";
+    }
     if (key === "doors") {
       var d = E.doors || {};
       return '<h3 class="step-h">Doors</h3><p class="sub">How many doors, and what kind?</p>' +
@@ -3630,6 +3701,11 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
           q("Sliding glass doors", stepper("dSl", "doors.sliding", d.sliding)) +
           q("French doors", stepper("dF", "doors.french", d.french)) +
         "</div>";
+    }
+    if (key === "finish" && E.type === "rescreen") {
+      return '<h3 class="step-h">Screen</h3>' +
+        q("Which screen goes in?", chips("screen", [["1814", "18/14 standard"], ["2020", "20/20 No-See-Um"], ["pet", "Pet screen"]], E.screen || "1814"),
+          "Used on the roof and the walls. Rescreen prices are built on 18/14; 20/20 and pet screen add their upgrade.");
     }
     if (key === "finish") {
       var g = E.gutter || {}, hasScreenRoof = (E.roofs || []).some(function (r) { return r.type === "screen"; }), firstW = num(((E.roofs || [])[0] || {}).width);
@@ -3643,11 +3719,12 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
     }
     if (key === "site") {
       var c = E.concrete || {};
-      return '<h3 class="step-h">Site work and fees</h3>' +
-        q("Tear out an existing structure?", yesNo("tearout", E.tearout)) +
+      var siteWork = !singlePrice(E);
+      return '<h3 class="step-h">' + (siteWork ? "Site work and fees" : "Fees and discounts") + "</h3>" +
+        (siteWork ? q("Tear out an existing structure?", yesNo("tearout", E.tearout)) +
         (E.tearout ? '<div class="field" style="max-width:260px"><label for="dh">Tear-out hours</label>' + nIn("dh", "demoHrs", E.demoHrs, "hrs") + '<span class="help">At ' + usd2.format(num(pricebook.items.demoHour.price)) + " per hour</span></div>" : "") +
         q("Concrete", chips("concrete.mode", [["none", "Not needed"], ["customer", "Customer arranges"], ["us", "We handle it", "Subbed out"]], c.mode || "none")) +
-        (c.mode === "us" ? '<div class="field" style="max-width:260px"><label for="cc">Concrete sub\'s price to us</label><div class="input"><span class="pre">$</span><input id="cc" data-e="concrete.cost" data-kind="num" inputmode="decimal" value="' + esc(blank(c.cost) ? "" : c.cost) + '" placeholder="0"></div><span class="help">Marked up to a ' + Math.round(num(pricebook.margin) * 100) + "% margin</span></div>" : "") +
+        (c.mode === "us" ? '<div class="field" style="max-width:260px"><label for="cc">Concrete sub\'s price to us</label><div class="input"><span class="pre">$</span><input id="cc" data-e="concrete.cost" data-kind="num" inputmode="decimal" value="' + esc(blank(c.cost) ? "" : c.cost) + '" placeholder="0"></div><span class="help">Marked up to a ' + Math.round(num(pricebook.margin) * 100) + "% margin</span></div>" : "") : "") +
         q("Engineering and building permit", yesNo("permit", E.permit !== false), usd2.format(num(pricebook.items.permit.price)) + " per job") +
         q("Charge design and measure?", yesNo("designMeasure", E.designMeasure), "$" + num(pricebook.items.designFee.price) + " design plus " + Math.round(num(pricebook.measurePct) * 100) + "% of the price for the measure") +
         q("Military discount (" + Math.round(num(pricebook.militaryPct) * 100) + "%)?", yesNo("military", E.military)) +
@@ -3655,15 +3732,40 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
         '<div class="field"><label for="enotes">Notes for the office</label><textarea class="notes text" id="enotes" data-e="notes" data-kind="text" placeholder="Access, HOA, existing slab condition…">' + esc(E.notes || "") + "</textarea></div>";
     }
     if (key === "labor") {
-      var table = pricebook.labor[E.type] || [];
-      return '<h3 class="step-h">Labor</h3><p class="sub">Hours come from the ' + EST_TYPES[E.type].toLowerCase() + " labor factors in the price book, using the total roof footprint.</p>" +
+      var table = pricebook.labor[E.type] || [], rsL = E.type === "rescreen";
+      return '<h3 class="step-h">Labor</h3><p class="sub">Hours come from the ' + EST_TYPES[E.type].toLowerCase() + " labor factors in the price book, using " + (rsL ? "the total screen area (roof plus walls)." : "the total roof footprint.") + "</p>" +
         '<div class="labor-box"><div class="labor-big"><span class="lbl">Calculated hours</span><span class="v" data-out="calcHrs"></span><span class="help" data-out="baseNote"></span></div>' +
-        '<table class="ledger"><thead><tr><th>Footprint up to</th><th>Factor</th></tr></thead><tbody>' + table.map(function (row) {
-          return "<tr><td>" + (row[0] === null || row[0] === "" ? "Over " + table[table.length - 2][0] + " sq ft" : row[0] + " sq ft") + "</td><td>" + row[1] + "</td></tr>";
+        '<table class="ledger"><thead><tr><th>' + (rsL ? "Screen area up to" : "Footprint up to") + "</th><th>Factor</th></tr></thead><tbody>" + table.map(function (row) {
+          return "<tr><td>" + (row[0] === null || row[0] === "" ? (table.length > 1 ? "Over " + table[table.length - 2][0] + " sq ft" : "Any size") : row[0] + " sq ft") + "</td><td>" + (row[1] === null || row[1] === "" ? '<span class="miss-pill">Not set</span>' : row[1]) + "</td></tr>";
         }).join("") + "</tbody></table></div>" +
         '<div id="laborExtras"></div><div id="laborFlags"></div>' +
         '<div class="field" style="max-width:300px;margin-top:6px"><label for="ho">Override hours</label>' + nIn("ho", "hoursOverride", E.hoursOverride, "team hrs", "Leave blank to use the calculation") +
         '<span class="help">Use this when the job is harder or easier than the formula expects.</span></div>';
+    }
+    if (key === "work") {
+      var sv = E.service || { items: [] }, P = pricebook.items;
+      var bookOpts = function (sel) {
+        return '<option value="">Type it in</option>' + PB_GROUPS.map(function (g) {
+          var ks = Object.keys(P).filter(function (k) { return P[k].g === g && !(P[k].price === null || P[k].price === "") && g !== "Labor"; });
+          return ks.length ? '<optgroup label="' + esc(g) + '">' + ks.map(function (k) { return '<option value="' + k + '"' + (k === sel ? " selected" : "") + ">" + esc(P[k].label) + " (" + usd2.format(num(P[k].price)) + " / " + esc(P[k].unit) + ")</option>"; }).join("") + "</optgroup>" : "";
+        }).join("");
+      };
+      return '<h3 class="step-h">Work and materials</h3><p class="sub">Service is priced by the hour plus materials. Labor bills at ' + usd2.format(num(P.laborRate.price)) + " per team hour; materials you type in are priced at cost ÷ " + (1 - num(pricebook.margin)).toFixed(2) + " for a " + Math.round(num(pricebook.margin) * 100) + "% margin.</p>" +
+        '<div class="field"><label for="svd">What we\'re doing</label><textarea class="notes text" id="svd" data-e="service.desc" data-kind="text" placeholder="Replace two screen doors and adjust the closers">' + esc(sv.desc || "") + '</textarea><span class="help">Each line becomes a bullet on the customer\'s estimate.</span></div>' +
+        '<div class="field" style="max-width:300px"><label for="svh">Labor hours</label>' + nIn("svh", "service.hours", sv.hours, "team hrs") + '<span class="help">Team hours (two technicians), including drive time if you charge for it.</span></div>' +
+        '<h4 class="mini-h">Materials</h4>' +
+        (sv.items || []).map(function (it, i) {
+          var bi = it.key ? P[it.key] : null, booked = bi && !(bi.price === null || bi.price === "");
+          return '<section class="ecard"><div class="ecard-h"><b>Material ' + (i + 1) + '</b><span class="money" data-out="svc-' + it.id + '"></span><button type="button" class="xbtn" data-del-svc="' + i + '">Remove</button></div>' +
+            '<div class="grid2">' +
+              '<div class="field span2"><label for="svk' + i + '">From the price book</label><div class="input"><select id="svk' + i + '" data-svc-key="' + i + '">' + bookOpts(it.key) + "</select></div></div>" +
+              '<div class="field span2"><label for="svn' + i + '">Description</label>' + tIn("svn" + i, "service.items." + i + ".desc", it.desc, bi ? bi.label : "Door closer") + "</div>" +
+              '<div class="field"><label for="svq' + i + '">Quantity</label>' + nIn("svq" + i, "service.items." + i + ".qty", it.qty, bi ? bi.unit : "", "1") + "</div>" +
+              (booked ? '<div class="field"><span class="lbl">Price</span><div class="num" style="font-size:17px">' + usd2.format(num(bi.price)) + " / " + esc(bi.unit) + "</div></div>"
+                : '<div class="field"><label for="svc' + i + '">Our cost each</label><div class="input"><span class="pre">$</span><input id="svc' + i + '" data-e="service.items.' + i + '.cost" data-kind="num" inputmode="decimal" value="' + esc(blank(it.cost) ? "" : it.cost) + '" placeholder="0.00"></div></div>') +
+            "</div></section>";
+        }).join("") +
+        '<div class="add-row"><button type="button" class="btn" data-add-svc>+ Add material</button></div>';
     }
     if (key === "review") {
       return '<h3 class="step-h">Review</h3><div id="reviewBody"></div>';
@@ -3703,6 +3805,20 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
         refreshWizard(E);
       });
     });
+    var as = main.querySelector("[data-add-svc]"); if (as) as.addEventListener("click", function () {
+      E.service = E.service || { desc: "", hours: "", items: [] }; E.service.items = E.service.items || [];
+      E.service.items.push({ id: eid(), key: "", desc: "", qty: 1, cost: "" }); estSave(E._id, 0); keepScroll(renderWizard);
+    });
+    main.querySelectorAll("[data-del-svc]").forEach(function (b) { b.addEventListener("click", function () { E.service.items.splice(+b.dataset.delSvc, 1); estSave(E._id, 0); keepScroll(renderWizard); }); });
+    main.querySelectorAll("[data-svc-key]").forEach(function (sel) {
+      sel.addEventListener("change", function () {
+        if (readOnly) return;
+        var it = E.service.items[+sel.dataset.svcKey], bi = pricebook.items[sel.value];
+        it.key = sel.value;
+        if (bi && (!it.desc || Object.keys(pricebook.items).some(function (k) { return pricebook.items[k].label === it.desc; }))) it.desc = bi.label;
+        estSave(E._id, 0); keepScroll(renderWizard);
+      });
+    });
     main.querySelectorAll("[data-add-roof]").forEach(function (b) { b.addEventListener("click", function () { E.roofs.push(newRoof(b.dataset.addRoof)); estSave(E._id, 0); keepScroll(renderWizard); }); });
     main.querySelectorAll("[data-del-roof]").forEach(function (b) { b.addEventListener("click", function () { E.roofs.splice(+b.dataset.delRoof, 1); estSave(E._id, 0); keepScroll(renderWizard); }); });
     var aw = main.querySelector("[data-add-wall]"); if (aw) aw.addEventListener("click", function () {
@@ -3718,6 +3834,12 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
   }
   function keepScroll(fn) { var y = window.scrollY; fn(); window.scrollTo(0, y); }
   function applyTypeDefaults(E, type) {
+    var single = type === "rescreen" || type === "service";
+    E.permit = !single;
+    if (single) { E.doors = E.doors || {}; if (num(E.doors.screen) === 1) E.doors.screen = 0; E.tearout = false; }
+    if (type === "service") E.service = E.service || { desc: "", hours: "", items: [] };
+    if (type === "rescreen") { (E.roofs || []).forEach(function (r) { r.type = "screen"; }); (E.walls || []).forEach(function (w) { w.type = "screen"; w.kick = "none"; }); return; }
+    if (type === "service") return;
     var rt = type === "screen" ? "screen" : "composite";
     (E.roofs || []).forEach(function (r) { if (!num(r.width) && !num(r.proj)) r.type = rt; });
     if (!E.wallsInit) return;
@@ -3743,13 +3865,14 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
 
   function drawReview(E, C) {
     var box = $("#reviewBody");
+    var one = singlePrice(E);
     var job = { rates: { teamRate: rates.teamRate, overheadRate: rates.overheadRate }, sqft: C.footprint, estimate: { price: C.total, materials: C.matCost, teamHours: C.teamHours, subs: C.subs, engineering: C.eng } };
     var J = calcEstimate(job);
     var miss = C.missing.length ? '<div class="banner"><strong>' + C.missing.length + " item" + (C.missing.length === 1 ? " has" : "s have") + " no price yet, so this total is low.</strong> " + esc(C.missing.join(", ")) + '. <button type="button" class="linkbtn" id="rvBook">Open the price book</button></div>' : "";
     var tierPh = "";
     box.innerHTML = miss +
       '<div class="rv-grid">' +
-      '<section class="panel"><h3>Signature estimate</h3><div class="table-scroll"><table class="ledger rv"><thead><tr><th>Item</th><th>Qty</th><th>Price</th></tr></thead><tbody>' +
+      '<section class="panel"><h3>' + (one ? EST_TYPES[E.type] + " estimate" : "Signature estimate") + "</h3>" + (one && E.type === "service" && !C.lines.length ? '<p class="sub">Add hours and materials on the Work step.</p>' : "") + '<div class="table-scroll"><table class="ledger rv"><thead><tr><th>Item</th><th>Qty</th><th>Price</th></tr></thead><tbody>' +
         C.secs.map(function (s) {
           return '<tr class="rv-sec"><td colspan="2">' + esc(s.name) + "</td><td>" + money(s.total, true) + "</td></tr>" + s.lines.map(function (l) {
             return "<tr><td>" + esc(l.label) + (l.missing ? ' <span class="miss-pill">No price</span>' : "") + '</td><td class="muted">' + (l.unit ? (Math.round(l.qty * 10) / 10).toLocaleString("en-US") + " " + l.unit + '<span class="why">@ ' + usd2.format(l.unitPrice) + "</span>" : "") + "</td><td>" + money(l.price, true) + "</td></tr>";
@@ -3757,13 +3880,14 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
         }).join("") +
         (C.military ? '<tr><td>Military discount</td><td></td><td class="neg">−' + money(C.military, true) + "</td></tr>" : "") +
         (C.discount ? '<tr><td>Discount</td><td></td><td class="neg">−' + money(C.discount, true) + "</td></tr>" : "") +
-        '<tr class="result"><td>Signature price</td><td></td><td>' + money(C.total, true) + "</td></tr>" +
+        '<tr class="result"><td>' + (one ? "Price" : "Signature price") + "</td><td></td><td>" + money(C.total, true) + "</td></tr>" +
       "</tbody></table></div></section>" +
       '<div class="stack">' +
+      (one ? '<section class="panel"><h3>Price for the customer</h3><div class="tier-row anchor"><span><b>' + EST_TYPES[E.type] + "</b><small>One price, no Essential, Signature or Legacy options</small></span><span class=\"money\">" + money(C.total) + "</span></div>" :
       '<section class="panel"><h3>Three options for the customer</h3>' +
-        tierRow("Essential", C.tiers.essential, pricebook.tiers.essentialPct) + tierRow("Signature", C.tiers.signature, 0, true) + tierRow("Legacy", C.tiers.legacy, pricebook.tiers.legacyPct) + tierPh +
+        tierRow("Essential", C.tiers.essential, pricebook.tiers.essentialPct) + tierRow("Signature", C.tiers.signature, 0, true) + tierRow("Legacy", C.tiers.legacy, pricebook.tiers.legacyPct) + tierPh) +
         '<button class="btn primary wide" type="button" id="rvPresent">Present to customer</button></section>' +
-      '<section class="panel"><h3>Profit at the Signature price</h3><p class="sub">Using this app\'s job costing rates (' + usd2.format(num(rates.teamRate)) + " labor + " + usd2.format(num(rates.overheadRate)) + ' overhead per team hour).</p>' +
+      '<section class="panel"><h3>' + (one ? "Profit at this price" : "Profit at the Signature price") + "</h3>" + '<p class="sub">Using this app\'s job costing rates (' + usd2.format(num(rates.teamRate)) + " labor + " + usd2.format(num(rates.overheadRate)) + ' overhead per team hour).</p>' +
         '<table class="ledger"><tbody>' +
           "<tr><td>Materials (cost)</td><td>" + money(J.mat) + "</td></tr>" +
           "<tr><td>Labor · " + (Math.round(J.hrs * 10) / 10) + " team hrs</td><td>" + money(J.labor) + "</td></tr>" +
@@ -3776,7 +3900,7 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
         '<div class="closeout-actions" style="margin-top:14px">' +
           (E.jobId && jobs.has(E.jobId) ? '<button class="btn" type="button" id="rvOpenJob">Open the job</button>' : '<button class="btn" type="button" id="rvMakeJob"' + (readOnly ? " disabled" : "") + ">Create job from this estimate</button>") +
           (readOnly ? "" : '<button class="btn danger" type="button" id="rvDel" style="margin-left:auto">Delete estimate</button>') +
-        '</div><p class="help" id="rvMsg" style="margin:8px 0 0">' + (E.tier ? "Customer chose " + E.tier.charAt(0).toUpperCase() + E.tier.slice(1) + ". The job uses that price." : "The job uses the Signature price unless the customer picks another option.") + "</p></section>" +
+        '</div><p class="help" id="rvMsg" style="margin:8px 0 0">' + (one ? "The job uses this price." : E.tier ? "Customer chose " + E.tier.charAt(0).toUpperCase() + E.tier.slice(1) + ". The job uses that price." : "The job uses the Signature price unless the customer picks another option.") + "</p></section>" +
       "</div></div>";
     bindReview(E);
   }
@@ -3797,14 +3921,14 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
 
   function makeJobFromEstimate(E) {
     if (readOnly) return;
-    var C = calcEst(E), price = E.tier ? C.tiers[E.tier] : C.tiers.signature;
+    var one = singlePrice(E), C = calcEst(E), price = one ? C.total : E.tier ? C.tiers[E.tier] : C.tiers.signature;
     var id = mode === "live" ? db.collection("jobs").doc().id : rid();
     var j = {
-      name: (E.customer.name || "New customer") + " " + EST_TYPES[E.type].toLowerCase(), location: E.customer.address || "", type: EST_JOBTYPE[E.type], sqft: Math.round(C.footprint) || "", status: "estimate",
+      name: (E.customer.name || "New customer") + " " + EST_TYPES[E.type].toLowerCase(), location: E.customer.address || "", type: EST_JOBTYPE[E.type], sqft: Math.round(E.type === "rescreen" ? C.screenArea : E.type === "service" ? 0 : C.footprint) || "", status: "estimate",
       createdAt: new Date().toISOString(), rates: { teamRate: rates.teamRate, overheadRate: rates.overheadRate },
       estimate: { price: Math.round(price), materials: Math.round(C.matCost * 100) / 100, teamHours: Math.round(C.teamHours * 10) / 10, subs: Math.round(C.subs * 100) / 100, engineering: Math.round(C.eng * 100) / 100 },
       bills: [], actual: { price: "", teamHours: "", subs: "", engineering: "" },
-      notes: "From field estimate" + (E.estimator ? " by " + E.estimator : "") + ". " + (E.tier ? E.tier.charAt(0).toUpperCase() + E.tier.slice(1) : "Signature") + " Series. " + (E.notes || ""),
+      notes: "From field estimate" + (E.estimator ? " by " + E.estimator : "") + ". " + (one ? (E.type === "service" && E.service && E.service.desc ? E.service.desc + ". " : "") : (E.tier ? E.tier.charAt(0).toUpperCase() + E.tier.slice(1) : "Signature") + " Series. ") + (E.notes || ""),
       fromEstimate: E._id
     };
     j._id = id; jobs.set(id, j); queueSave(id, 0);
@@ -3884,6 +4008,38 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
       (S.validity ? '<p class="footer-note ps-valid">' + esc(S.validity).replace(/\{(\d+) days?\}/gi, function (m, n) { var d = new Date(); d.setDate(d.getDate() + Number(n)); return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }); }) + "</p>" : "") +
     "</div></div>";
   }
+  // Rescreens and service calls: one price, same look as the tier sheet.
+  function priceSheetSingleHTML(E, C) {
+    var S = pricebook.tiers.sheet, items = [];
+    var sqft = function (n) { return Math.round(n).toLocaleString("en-US") + " sq ft"; };
+    if (E.type === "rescreen") {
+      var scr = SCREEN_TYPES[E.screen || "1814"];
+      (E.roofs || []).forEach(function (r) { var a = num(r.width) * num(r.proj); if (a) items.push("Rescreen the " + r.width + "' \u00d7 " + r.proj + "' roof (" + sqft(a) + ")"); });
+      var wa = 0, wn = 0; (E.walls || []).forEach(function (w) { var a = num(w.len) * num(w.ht); if (a) { wa += a; wn++; } });
+      if (wn) items.push("Rescreen " + wn + " wall" + (wn === 1 ? "" : "s") + " (" + sqft(wa) + ")");
+      items.push("Remove and haul away the old screen");
+      items.push(E.screen === "2020" ? "New Phifer 20/20 No-See-Um screen" : E.screen === "pet" ? "New pet-resistant screen" : "New 18/14 standard screen");
+      var nd = num((E.doors || {}).screen); if (nd) items.push(nd + " new screen door" + (nd === 1 ? "" : "s") + " with door hardware");
+    } else {
+      String((E.service || {}).desc || "").split("\n").map(function (l) { return l.replace(/^[-\u2022*\s]+/, "").trim(); }).filter(Boolean).forEach(function (l) { items.push(l); });
+      if (!items.length) items.push("Service work as discussed");
+      items.push("Labor and materials included");
+    }
+    if (E.permit !== false && C.lines.some(function (l) { return /permit/i.test(l.label); })) items.push("Engineering and building permit");
+    var forBits = [E.customer.address, new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })].filter(Boolean);
+    var name = E.type === "rescreen" ? "Rescreen" : "Service";
+    return '<div class="ps ps-single" id="priceSheet"><div class="wrap">' +
+      '<div class="brand-header"><div class="brand-logo"><span class="brand-aa">AA</span><span class="brand-name">Advanced<br>Aluminum</span></div><div class="brand-divider"></div><span class="brand-sub">' + name + " Estimate</span></div>" +
+      (E.customer.name ? '<p class="ps-for">Prepared for <b>' + esc(E.customer.name) + "</b>" + (forBits.length ? " \u00a0\u00b7\u00a0 " + forBits.map(esc).join(" \u00a0\u00b7\u00a0 ") : "") + "</p>" : "") +
+      '<div class="tier-grid one"><div class="tier-card featured"><div class="tier-header">' +
+        '<p class="tier-name dark">' + (E.type === "rescreen" ? "Enclosure Rescreen" : "Service") + "</p>" +
+        '<p class="tier-tagline dark">' + (E.type === "rescreen" ? "New screen on your existing enclosure." : "Repairs and replacement on your existing structure.") + "</p>" +
+        '<div class="price-block"><div class="price-amount accent-signature">' + money(C.total) + '</div><div class="price-label dim">Project Total</div></div>' +
+      '</div><div class="tier-body"><p class="section-label">What\'s included</p><ul class="feature-list">' +
+        items.map(function (x) { return "<li>" + psIcon("check", "ck-s") + esc(x) + "</li>"; }).join("") + "</ul></div></div></div>" +
+      (S.validity ? '<p class="footer-note ps-valid">' + esc(S.validity).replace(/\{(\d+) days?\}/gi, function (m, n) { var d = new Date(); d.setDate(d.getDate() + Number(n)); return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }); }) + "</p>" : "") +
+    "</div></div>";
+  }
   // One portrait letter page: lay the sheet out 1000px wide, then scale it to fit the page.
   function fitSheetForPrint() {
     var el = $("#priceSheet"); if (!el) return;
@@ -3908,12 +4064,12 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
     main.innerHTML =
       '<div class="pres">' +
         '<div class="pres-bar"><button type="button" class="btn ghost" id="presExit">Exit</button>' +
-          '<div class="pres-choice"><span>Customer\'s choice</span>' + seg("essential", "Essential") + seg("signature", "Signature") + seg("legacy", "Legacy") + "</div>" +
+          (singlePrice(E) ? "" : '<div class="pres-choice"><span>Customer\'s choice</span>' + seg("essential", "Essential") + seg("signature", "Signature") + seg("legacy", "Legacy") + "</div>") +
           '<button type="button" class="btn primary" id="presPdf">Save as PDF</button></div>' +
         (C.missing.length ? '<p class="flag pres-flag">' + C.missing.length + " item" + (C.missing.length === 1 ? " has" : "s have") + " no price yet, so these prices are low.</p>" : "") +
-        priceSheetHTML(E, C) +
+        (singlePrice(E) ? priceSheetSingleHTML(E, C) : priceSheetHTML(E, C)) +
       "</div>";
-    $("#presExit").addEventListener("click", function () { estGo({ sub: "wizard", step: EST_STEPS.length - 1 }); });
+    $("#presExit").addEventListener("click", function () { estGo({ sub: "wizard", step: estSteps(curEst()).length - 1 }); });
     $("#presPdf").addEventListener("click", function () { savePriceSheetPDF(E); });
     main.querySelectorAll("[data-tier]").forEach(function (b) {
       b.addEventListener("click", function () { if (readOnly) return; E.tier = E.tier === b.dataset.tier ? "" : b.dataset.tier; estSave(E._id, 0); keepScroll(renderPresent); });
@@ -3933,11 +4089,11 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
             '<td><div class="input"><span class="pre">$</span><input id="pbp-' + k + '" data-pb="' + k + '" data-f="price" inputmode="decimal" value="' + (missing ? "" : it.price) + '" placeholder="Needs price"></div></td></tr>';
         }).join("") + "</tbody></table></div></section>";
     }).join("");
-    var lt = function (k, name) {
-      return '<div><div class="q-label">' + name + (P.laborFlags && P.laborFlags[k] ? ' <span class="miss-pill">Copied, confirm</span>' : "") + "</div>" +
-        '<table class="bills pb"><thead><tr><th>Footprint up to (sq ft)</th><th>Hours per sq ft</th></tr></thead><tbody>' +
+    var lt = function (k, name, basis) {
+      return '<div><div class="q-label">' + name + (P.laborFlags && P.laborFlags[k] ? ' <span class="miss-pill">Copied, confirm</span>' : "") + (P.labor[k].some(function (r) { return r[1] === null || r[1] === ""; }) ? ' <span class="miss-pill">Needs hours</span>' : "") + "</div>" +
+        '<table class="bills pb"><thead><tr><th>' + (basis || "Footprint") + ' up to (sq ft)</th><th>Hours per sq ft</th></tr></thead><tbody>' +
         P.labor[k].map(function (row, i) {
-          return '<tr><td><div class="input"><input id="lt-' + k + i + '" data-lt="' + k + '" data-i="' + i + '" data-c="0" inputmode="decimal" value="' + (row[0] === null ? "" : row[0]) + '" placeholder="No limit"></div></td><td><div class="input"><input id="lf-' + k + i + '" data-lt="' + k + '" data-i="' + i + '" data-c="1" inputmode="decimal" value="' + row[1] + '"></div></td></tr>';
+          return '<tr><td><div class="input"><input id="lt-' + k + i + '" data-lt="' + k + '" data-i="' + i + '" data-c="0" inputmode="decimal" value="' + (row[0] === null ? "" : row[0]) + '" placeholder="No limit"></div></td><td><div class="input"><input id="lf-' + k + i + '" data-lt="' + k + '" data-i="' + i + '" data-c="1" inputmode="decimal" value="' + (row[1] === null ? "" : row[1]) + '" placeholder="Not set"></div></td></tr>';
         }).join("") + "</tbody></table></div>";
     };
     var xh = function (k, label, unit) { var v = P.extraHrs[k]; return '<div class="field"><label for="xh-' + k + '">' + label + '</label><div class="input"><input id="xh-' + k + '" data-xh="' + k + '" inputmode="decimal" value="' + (v === null || v === "" ? "" : v) + '" placeholder="Not set"><span class="post">hrs / ' + unit + "</span></div></div>"; };
@@ -3949,7 +4105,7 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
       '<fieldset class="stack"' + dis + ">" + groups +
       '<section class="panel"><h3>Labor hours</h3><p class="sub">Hours = footprint × factor. JobTread applies one factor to the whole footprint, which jumps at each breakpoint (599 sq ft gets 71.9 hours, 601 gets 36.7). Bracketed applies each factor only to the square feet inside its range.</p>' +
         q("How factors apply", chips("laborMode", [["whole", "Whole footprint", "How JobTread does it"], ["bracket", "Bracketed", "No price jumps"]], P.laborMode)) +
-        '<div class="lt-grid">' + lt("screen", "Screen enclosures") + lt("sunroom", "Sunrooms") + lt("patio", "Patio enclosures") + "</div>" +
+        '<div class="lt-grid">' + lt("screen", "Screen enclosures") + lt("sunroom", "Sunrooms") + lt("patio", "Patio enclosures") + lt("rescreen", "Rescreens", "Screen area") + "</div>" +
         '<h4 class="mini-h">Hours added for options</h4><div class="grid2">' + xh("kickLf", "Kick plates", "lf") + xh("transomLf", "Transom", "lf") + xh("windowSqft", "Windows", "sq ft") + xh("compositeSqft", "Composite roof", "sq ft") + "</div></section>" +
       '<section class="panel"><h3>Rules</h3><div class="grid2">' +
         '<div class="field"><label for="pbM">Margin on cost</label><div class="input"><input id="pbM" data-rule="margin" data-pct="1" inputmode="decimal" value="' + Math.round(num(P.margin) * 1000) / 10 + '"><span class="post">%</span></div></div>' +
