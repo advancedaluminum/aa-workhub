@@ -575,25 +575,101 @@ code { font-family: var(--font-data); font-size: .9em; background: var(--surface
 
 /* customer presentation */
 body.presenting .top, body.presenting .mainnav, body.presenting .foot, body.presenting #banner, body.presenting #ratesPanel { display: none; }
-.pres { display: flex; flex-direction: column; gap: 22px; padding-top: 18px; }
-.pres-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; border-bottom: 3px solid var(--bronze); padding-bottom: 12px; }
-.pres-top img { height: 56px; width: auto; }
-.pres-intro h2 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 5vw, 46px); text-transform: uppercase; line-height: 1; margin: 4px 0 8px; text-wrap: balance; }
-.pres-intro p { margin: 0; color: var(--ink-2); font-size: 16px; max-width: 70ch; }
-.tgrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
-.tcard { position: relative; display: flex; flex-direction: column; gap: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 22px 20px 20px; min-width: 0; }
-.tcard.popular { border: 2px solid var(--bronze); box-shadow: 0 10px 30px rgba(221, 36, 32, .12); }
-.tcard.chosen { outline: 3px solid var(--good); outline-offset: 2px; }
-.ribbon { position: absolute; top: -13px; left: 50%; transform: translateX(-50%); background: var(--bronze); color: var(--bronze-ink); font-family: var(--font-display); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; font-size: 13px; padding: 3px 14px; border-radius: 999px; white-space: nowrap; }
-.tcard h3 { font-family: var(--font-display); font-weight: 700; font-size: 1.9rem; text-transform: uppercase; margin: 0; line-height: 1; }
-.tcard h3 span { font-weight: 500; color: var(--ink-2); font-size: 1.1rem; margin-left: 6px; letter-spacing: .05em; }
-.ttag { margin: 0; color: var(--ink-2); font-size: 14.5px; }
-.tprice { font-family: var(--font-display); font-weight: 700; font-size: 2.6rem; line-height: 1; font-variant-numeric: tabular-nums; }
-.tcard.popular .tprice { color: var(--bronze); }
-.tcard ul { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; flex: 1; }
-.tcard li { position: relative; padding-left: 22px; font-size: 14.5px; line-height: 1.4; }
-.tcard li::before { content: ""; position: absolute; left: 2px; top: 6px; width: 10px; height: 6px; border-left: 2px solid var(--good); border-bottom: 2px solid var(--good); transform: rotate(-45deg); }
-.pres-foot { margin: 0; color: var(--ink-2); font-size: 13px; text-align: center; }
+.pres { display: flex; flex-direction: column; gap: 14px; padding-top: 14px; }
+.pres-bar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; }
+.pres-choice { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.pres-choice > span { color: var(--ink-2); font-size: 13.5px; font-weight: 600; margin-right: 4px; }
+.pres-choice .chip { min-height: 40px; padding: 6px 14px; }
+.pres-flag { margin: 0; }
+
+/* price sheet: copied from the "Pricing Tiers Design" chat. Keep it matching that design. */
+.ps {
+  --aa-red: #D94F45; --aa-red-dark: #B03A31; --aa-red-light: #F9EEEE; --aa-black: #111111; --aa-charcoal: #2E2E2E;
+  --aa-gray-light: #F5F4F2; --aa-gray-border: rgba(0,0,0,0.12);
+  --font-sans: "Source Sans 3", "Segoe UI", Helvetica, Arial, sans-serif;
+  --color-background-primary: #ffffff; --color-text-primary: #1a1a19; --color-text-secondary: #6b6a66;
+  --border-radius-md: 8px; --border-radius-lg: 12px;
+  background: #ffffff; color: var(--color-text-primary); border-radius: 12px; padding: 0 1.25rem;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+.ps .wrap { padding: 1.5rem 0 1rem; font-family: var(--font-sans); }
+.ps .ti { width: 1em; height: 1em; flex-shrink: 0; }
+.ps .brand-header { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 1.4rem; }
+.ps .brand-logo { display: flex; align-items: center; gap: 8px; }
+.ps .brand-aa { font-size: 22px; font-weight: 500; color: var(--aa-red); letter-spacing: -0.01em; line-height: 1; }
+.ps .brand-name { font-size: 11px; font-weight: 500; color: var(--color-text-secondary); letter-spacing: 0.12em; text-transform: uppercase; line-height: 1.3; }
+.ps .brand-divider { width: 1px; height: 28px; background: var(--aa-gray-border); }
+.ps .brand-sub { font-size: 12px; color: var(--color-text-secondary); letter-spacing: 0.06em; text-transform: uppercase; }
+.ps .ps-for { text-align: center; font-size: 12px; color: var(--color-text-secondary); margin: -0.6rem 0 1.2rem; }
+.ps .ps-for b { color: var(--color-text-primary); font-weight: 600; }
+.ps .tier-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; align-items: start; }
+.ps .tier-card { background: var(--color-background-primary); border: 0.5px solid var(--aa-gray-border); border-radius: var(--border-radius-lg); overflow: hidden; }
+.ps .tier-card.featured { border: 2px solid var(--aa-red); }
+.ps .tier-card.premium { border: 2px solid var(--aa-black); }
+.ps .tier-header { padding: 1rem 1.1rem 0; border-bottom: 0.5px solid var(--aa-gray-border); }
+.ps .tier-header.premium-header { background: var(--aa-black); }
+.ps .badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: var(--border-radius-md); margin-bottom: 8px; letter-spacing: 0.02em; }
+.ps .badge-base { background: var(--aa-gray-light); color: #555; }
+.ps .badge-popular { background: var(--aa-red-light); color: var(--aa-red-dark); }
+.ps .badge-premium { background: #2E2E2E; color: #ccc; }
+.ps .tier-name { font-size: 15px; font-weight: 500; margin: 0 0 4px; letter-spacing: 0.06em; text-transform: uppercase; }
+.ps .tier-name.light { color: #fff; }
+.ps .tier-name.dark { color: var(--color-text-primary); }
+.ps .tier-tagline { font-size: 12px; margin: 0 0 10px; line-height: 1.5; }
+.ps .tier-tagline.light { color: #aaa; }
+.ps .tier-tagline.dark { color: var(--color-text-secondary); }
+.ps .warranty-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 500; padding: 5px 10px; border-radius: var(--border-radius-md); margin-bottom: 14px; }
+.ps .wb-essential { background: var(--aa-gray-light); color: #555; }
+.ps .wb-signature { background: var(--aa-red-light); color: var(--aa-red-dark); }
+.ps .wb-legacy { background: #2E2E2E; color: #E0C8A0; }
+.ps .price-block { text-align: center; padding: 14px 0 16px; border-top: 0.5px solid var(--aa-gray-border); }
+.ps .price-block.light { border-top-color: rgba(255,255,255,0.15); }
+.ps .price-amount { font-size: 28px; font-weight: 600; line-height: 1; margin-bottom: 4px; }
+.ps .price-amount.accent-essential { color: #555; }
+.ps .price-amount.accent-signature { color: var(--aa-red); }
+.ps .price-amount.accent-legacy { color: #E0C8A0; }
+.ps .price-label { font-size: 10px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; }
+.ps .price-label.dim { color: var(--color-text-secondary); }
+.ps .price-label.dim-light { color: #999; }
+.ps .tier-body { padding: 1rem 1.1rem; }
+.ps .section-label { font-size: 10px; font-weight: 500; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.08em; margin: 0 0 6px; padding-bottom: 4px; border-bottom: 0.5px solid var(--aa-gray-border); }
+.ps .section-label:not(:first-child) { margin-top: 12px; }
+.ps .feature-list { list-style: none; margin: 0; padding: 0; }
+.ps .feature-list li { display: flex; align-items: flex-start; gap: 6px; font-size: 12px; color: var(--color-text-primary); padding: 3px 0; line-height: 1.45; }
+.ps .feature-list li .ti { font-size: 13px; margin-top: 1px; flex-shrink: 0; }
+.ps .ck-e { color: #888; }
+.ps .ck-s { color: var(--aa-red); }
+.ps .ck-l { color: #C0964A; }
+.ps .includes-plus { font-size: 11px; color: var(--color-text-secondary); margin: 0 0 8px; font-style: italic; }
+.ps .choose-one { background: var(--aa-gray-light); border-radius: var(--border-radius-md); padding: 8px 10px; margin-top: 6px; font-size: 11px; color: var(--color-text-secondary); }
+.ps .choose-one strong { display: block; font-size: 11px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 4px; }
+.ps .choose-one strong .ti { vertical-align: -2px; }
+.ps .choose-one span { display: inline-block; background: var(--color-background-primary); border: 0.5px solid var(--aa-gray-border); border-radius: 4px; padding: 2px 7px; margin: 2px 2px 0 0; font-size: 11px; color: var(--color-text-secondary); }
+.ps .render-callout { background: var(--aa-charcoal); border-radius: var(--border-radius-md); padding: 9px 11px; margin-top: 10px; display: flex; align-items: flex-start; gap: 9px; }
+.ps .render-icon { width: 32px; height: 32px; border-radius: 6px; background: var(--aa-red); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.ps .render-icon .ti { font-size: 17px; color: #fff; }
+.ps .render-text strong { display: block; font-size: 12px; font-weight: 500; color: #fff; margin-bottom: 2px; }
+.ps .render-text span { font-size: 11px; color: #aaa; line-height: 1.4; }
+.ps .footer-note { text-align: center; font-size: 11px; color: var(--color-text-secondary); margin-top: 16px; margin-bottom: 0; }
+.ps .footer-note .ti { font-size: 12px; vertical-align: -2px; }
+@media screen {
+  .ps .tier-card.chosen { box-shadow: 0 0 0 3px #fff, 0 0 0 6px var(--good); }
+}
+@media screen and (max-width: 760px) {
+  .ps { padding: 0 .75rem; }
+  .ps .tier-grid { grid-template-columns: minmax(0, 1fr); }
+}
+body.printing-sheet .ps { width: 1000px; max-width: none; padding: 0; }
+body.printing-sheet .ps .wrap { padding: 0; }
+@media print {
+  @page { size: letter portrait; margin: 0.4in; }
+  html, body { background: #fff !important; }
+  body.presenting .pres-bar, body.presenting .pres-flag { display: none !important; }
+  body.presenting .pres { padding: 0; gap: 0; }
+  body.presenting #main { padding: 0 !important; margin: 0 !important; max-width: none !important; }
+  .ps { padding: 0; border-radius: 0; break-inside: avoid; }
+  .ps .wrap { padding: 0; }
+}
 
 /* price book */
 .pb td { vertical-align: middle; }
@@ -602,11 +678,10 @@ body.presenting .top, body.presenting .mainnav, body.presenting .foot, body.pres
 .pb tr.pb-miss td:first-child { color: var(--warn); }
 .lt-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 16px; margin: 12px 0; }
 .tf-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 14px; }
-textarea.tf { min-height: 200px; font-size: 15px; }
+textarea.tf { min-height: 420px; font-size: 14.5px; }
 
 @media (max-width: 860px) {
   .rv-grid, .labor-box { grid-template-columns: minmax(0, 1fr); }
-  .tgrid { grid-template-columns: minmax(0, 1fr); max-width: 520px; margin: 14px auto 0; width: 100%; gap: 26px; }
   .est-row { grid-template-columns: minmax(0,1fr) auto; }
 }
 @media (max-width: 520px) {
@@ -2987,10 +3062,39 @@ textarea.tf { min-height: 200px; font-size: 15px; }
       extraHrs: { kickLf: null, transomLf: null, windowSqft: null, compositeSqft: null },
       tiers: {
         essentialPct: -0.07, legacyPct: 0.31,
-        essential: ["Structural aluminum frame system", "18/14 standard screen", "Standard screen doors & door hardware", "Engineering & building permit", "10-year workmanship warranty"],
-        signature: ["Structural aluminum frame with full lap beam connections", "20x20 Phifer \"No See-Um\" screen", "Standard screen doors with upgraded hardware", "Assembled & installed with stainless steel fasteners", "Wind brace package", "Hurricane cables", "Engineering & building permit", "10-year workmanship warranty"],
-        legacy: ["Everything in the Signature Series", "[Add Legacy upgrade]", "[Add Legacy upgrade]"],
-        placeholder: true
+        // The price sheet (from the "Pricing Tiers Design" chat). Edited in the price book.
+        sheet: {
+          essential: [
+            "Badge: Entry level",
+            "Tagline: Quality engineering at the lowest investment \u2014 reliability first.",
+            "Warranty: 2-year workmanship warranty",
+            "# Best for", "Budget-conscious buyers", "Rental properties", "Functionality-first homeowners",
+            "# Structure & materials", "Engineered to code", "Standard framing package", "Standard wind bracing", "Standard 5\" gutter system", "Standard hardware", "Standard 18/14 screen", "Standard screen doors & door hardware",
+            "# Service", "Standard scheduling", "Permit handling", "Final walkthrough"
+          ].join("\n"),
+          signature: [
+            "Badge: Most popular",
+            "Tagline: Enhanced durability, stronger materials, and long-term peace of mind.",
+            "Warranty: 10-year workmanship warranty",
+            "Plus: Everything in Essential, plus:",
+            "# Upgraded materials", "Medium duty framing package", "Premium Phifer 20/20 No-See-Um screen", "Xylan-coated stainless fasteners", "Upgraded door hardware", "Deluxe doors",
+            "# Structural upgrades", "Enhanced hurricane bracing package", "Through-bolted cable attachments", "Additional reinforcement at critical areas",
+            "# Customer experience", "Priority scheduling after permit approval", "Project updates throughout construction",
+            "Choose one: Door upgrade | Kickplate package | Screen upgrade | Pet door"
+          ].join("\n"),
+          legacy: [
+            "Badge: Premium",
+            "Tagline: Our highest level of craftsmanship, engineering, service, and long-term protection.",
+            "Warranty: Lifetime workmanship warranty",
+            "Plus: Everything in Signature, plus:",
+            "# Premium structure", "Maximum hurricane reinforcement", "Heavy-duty framing upgrades", "Through-bolted hurricane system", "Enhanced engineering package", "Larger gutter package",
+            "# Premium design features", "Picture window upgrades", "Decorative framing upgrades", "Premium door package", "Mansard enhancements", "Designer appearance upgrades",
+            "# White glove experience", "Front-of-line scheduling", "Dedicated project communication", "Weekly project updates", "Completion gift", "Priority service response",
+            "# Annual maintenance", "1 complimentary annual inspection", "Door, hardware & fastener review", "Drainage & structural check",
+            "Callout: 3D Rendering Included | See your enclosure before we build it \u2014 a photorealistic 3D render of your project, personalized to your home."
+          ].join("\n"),
+          footer: "Signature Protection Plan\u2122 \u00a0\u00b7\u00a0 Legacy Lifetime Protection\u2122 \u00a0\u00b7\u00a0 All packages include permit handling & final walkthrough"
+        }
       }
     };
   }
@@ -3005,7 +3109,8 @@ textarea.tf { min-height: 200px; font-size: 15px; }
     if (saved.labor) Object.keys(d.labor).forEach(function (k) { if (Array.isArray(saved.labor[k]) && saved.labor[k].length) d.labor[k] = saved.labor[k]; });
     if (saved.laborFlags) d.laborFlags = saved.laborFlags;
     if (saved.extraHrs) Object.keys(d.extraHrs).forEach(function (k) { if (saved.extraHrs[k] !== undefined) d.extraHrs[k] = saved.extraHrs[k]; });
-    if (saved.tiers) Object.keys(saved.tiers).forEach(function (k) { d.tiers[k] = saved.tiers[k]; });
+    if (saved.tiers) ['essentialPct', 'legacyPct'].forEach(function (k) { if (saved.tiers[k] !== undefined) d.tiers[k] = saved.tiers[k]; });
+    if (saved.tiers && saved.tiers.sheet) Object.keys(d.tiers.sheet).forEach(function (k) { if (typeof saved.tiers.sheet[k] === "string") d.tiers.sheet[k] = saved.tiers.sheet[k]; });
     return d;
   }
   function pbMissingCount() {
@@ -3520,7 +3625,7 @@ textarea.tf { min-height: 200px; font-size: 15px; }
     var job = { rates: { teamRate: rates.teamRate, overheadRate: rates.overheadRate }, sqft: C.footprint, estimate: { price: C.total, materials: C.matCost, teamHours: C.teamHours, subs: C.subs, engineering: C.eng } };
     var J = calcEstimate(job);
     var miss = C.missing.length ? '<div class="banner"><strong>' + C.missing.length + " item" + (C.missing.length === 1 ? " has" : "s have") + " no price yet, so this total is low.</strong> " + esc(C.missing.join(", ")) + '. <button type="button" class="linkbtn" id="rvBook">Open the price book</button></div>' : "";
-    var tierPh = pricebook.tiers.placeholder ? '<p class="flag">The tier features are placeholders until you replace them with the copy from your pricing graphic in the price book.</p>' : "";
+    var tierPh = "";
     box.innerHTML = miss +
       '<div class="rv-grid">' +
       '<section class="panel"><h3>Signature estimate</h3><div class="table-scroll"><table class="ledger rv"><thead><tr><th>Item</th><th>Qty</th><th>Price</th></tr></thead><tbody>' +
@@ -3589,32 +3694,105 @@ textarea.tf { min-height: 200px; font-size: 15px; }
 
   /* ---------- presentation ---------- */
   function startPresent() { var E = curEst(); if (E && E.status === "draft") { E.status = "presented"; estSave(E._id, 0); } estGo({ sub: "present" }); }
-  function renderPresent() {
-    var E = curEst(), C = calcEst(E), T = pricebook.tiers;
-    var roofs = (E.roofs || []).map(function (r) { return (r.type === "composite" ? "insulated composite" : "screen") + " roof"; });
-    var walls = {}; (E.walls || []).forEach(function (w) { var k = w.type === "glass" ? (w.impact === false ? "glass" : "impact glass") : w.type === "acrylic" ? "acrylic window" : "screen"; walls[k] = (walls[k] || 0) + 1; });
-    var wallTxt = Object.keys(walls).map(function (k) { return walls[k] + " " + k + " wall" + (walls[k] === 1 ? "" : "s"); }).join(", ");
-    var dims = (E.roofs || []).filter(function (r) { return num(r.width) && num(r.proj); }).map(function (r) { return r.width + "' × " + r.proj + "'"; }).join(" + ");
-    var card = function (k, name, tag, feats, popular) {
-      var chosen = E.tier === k;
-      return '<article class="tcard' + (popular ? " popular" : "") + (chosen ? " chosen" : "") + '">' + (popular ? '<div class="ribbon">Most popular</div>' : "") +
-        '<h3>' + name + '<span>Series</span></h3><p class="ttag">' + tag + '</p><div class="tprice">' + money(C.tiers[k]) + "</div>" +
-        '<ul>' + (feats || []).filter(function (f) { return String(f).trim(); }).map(function (f) { return "<li>" + esc(f) + "</li>"; }).join("") + "</ul>" +
-        '<button type="button" class="btn' + (chosen || popular ? " primary" : "") + ' wide" data-tier="' + k + '">' + (chosen ? "Selected" : "Choose " + name) + "</button></article>";
+  // Tabler outline icons used by the price sheet (inline so the PDF never waits on a font).
+  var PS_ICONS = {
+    home: "M5 12l-2 0l9 -9l9 9l-2 0|M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7|M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6",
+    user: "M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0|M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2",
+    building: "M3 21l18 0|M9 8l1 0|M9 12l1 0|M9 16l1 0|M14 8l1 0|M14 12l1 0|M14 16l1 0|M5 21v-16a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v16",
+    tool: "M7 10h3v-3l-3.5 -3.5a6 6 0 0 1 8 8l6 6a2 2 0 0 1 -3 3l-6 -6a6 6 0 0 1 -8 -8l3.5 3.5",
+    check: "M5 12l5 5l10 -10",
+    star: "M12 17.75l-6.172 3.245l1.179 -6.873l-5 -4.867l6.9 -1l3.086 -6.253l3.086 6.253l6.9 1l-5 4.867l1.179 6.873z",
+    shield: "M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3",
+    "shield-check": "M11.46 20.846a12 12 0 0 1 -7.96 -14.846a12 12 0 0 0 8.5 -3a12 12 0 0 0 8.5 3a12 12 0 0 1 -.09 7.06|M15 19l2 2l4 -4",
+    crown: "M12 6l4 6l5 -4l-2 10h-14l-2 -10l5 4z",
+    gift: "M3 9a1 1 0 0 1 1 -1h16a1 1 0 0 1 1 1v2a1 1 0 0 1 -1 1h-16a1 1 0 0 1 -1 -1z|M12 8l0 13|M19 12v7a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2v-7|M7.5 8a2.5 2.5 0 0 1 0 -5a4.8 8 0 0 1 4.5 5a4.8 8 0 0 1 4.5 -5a2.5 2.5 0 0 1 0 5",
+    cube: "M6 17.6l-2 -1.1v-2.5|M4 10v-2.5l2 -1.1|M10 4.1l2 -1.1l2 1.1|M18 6.4l2 1.1v2.5|M20 14v2.5l-2 1.12|M14 19.9l-2 1.1l-2 -1.1|M12 12l2 -1.1|M18 8.6l2 -1.1|M12 12l0 2.5|M12 18.5l0 2.5|M12 12l-2 -1.12|M6 8.6l-2 -1.1",
+    info: "M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0|M12 9h.01|M11 12h1v4h1"
+  };
+  function psIcon(name, cls) {
+    return '<svg class="ti' + (cls ? " " + cls : "") + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      PS_ICONS[name].split("|").map(function (d) { return '<path d="' + d + '"/>'; }).join("") + "</svg>";
+  }
+  // Price-book text for one tier: "Badge:", "Tagline:", "Warranty:", "Plus:", "# Section", feature lines,
+  // "Choose one: a | b", "Callout: title | text".
+  function parseSheet(text) {
+    var t = { badge: "", tagline: "", warranty: "", plus: "", blocks: [] }, cur = null;
+    String(text || "").split("\n").forEach(function (raw) {
+      var line = raw.trim(), m;
+      if (!line) return;
+      if ((m = /^(badge|tagline|warranty|plus):\s*(.*)$/i.exec(line))) { t[m[1].toLowerCase()] = m[2]; return; }
+      if ((m = /^choose one:\s*(.*)$/i.exec(line))) { t.blocks.push({ kind: "choose", items: m[1].split("|").map(function (x) { return x.trim(); }).filter(Boolean) }); cur = null; return; }
+      if ((m = /^callout:\s*(.*)$/i.exec(line))) { var parts = m[1].split("|"); t.blocks.push({ kind: "callout", title: parts[0].trim(), text: parts.slice(1).join("|").trim() }); cur = null; return; }
+      if (line.charAt(0) === "#") { cur = { kind: "section", label: line.replace(/^#+\s*/, ""), items: [] }; t.blocks.push(cur); return; }
+      if (!cur) { cur = { kind: "section", label: "", items: [] }; t.blocks.push(cur); }
+      cur.items.push(line);
+    });
+    return t;
+  }
+  function priceSheetHTML(E, C) {
+    var S = pricebook.tiers.sheet;
+    var tierHTML = function (k, name) {
+      var t = parseSheet(S[k]), ck = { essential: "ck-e", signature: "ck-s", legacy: "ck-l" }[k];
+      var dark = k === "legacy";
+      var badge = { essential: ["badge-base", "home"], signature: ["badge-popular", "star"], legacy: ["badge-premium", "crown"] }[k];
+      var wb = { essential: ["wb-essential", "shield"], signature: ["wb-signature", "shield-check"], legacy: ["wb-legacy", "shield-check"] }[k];
+      var body = (t.plus ? '<p class="includes-plus">' + esc(t.plus) + "</p>" : "") + t.blocks.map(function (bl) {
+        if (bl.kind === "choose") return '<div class="choose-one"><strong>' + psIcon("gift") + " Choose one included upgrade</strong>" + bl.items.map(function (x) { return "<span>" + esc(x) + "</span>"; }).join("") + "</div>";
+        if (bl.kind === "callout") return '<div class="render-callout"><div class="render-icon">' + psIcon("cube") + '</div><div class="render-text"><strong>' + esc(bl.title) + "</strong><span>" + esc(bl.text) + "</span></div></div>";
+        var bestFor = /^best for$/i.test(bl.label), icons = ["user", "building", "tool"];
+        return (bl.label ? '<p class="section-label">' + esc(bl.label) + "</p>" : "") +
+          '<ul class="feature-list">' + bl.items.map(function (x, i) { return "<li>" + psIcon(bestFor ? icons[i % 3] : "check", ck) + esc(x) + "</li>"; }).join("") + "</ul>";
+      }).join("");
+      return '<div class="tier-card' + (k === "signature" ? " featured" : dark ? " premium" : "") + (E.tier === k ? " chosen" : "") + '">' +
+        '<div class="tier-header' + (dark ? " premium-header" : "") + '">' +
+          (t.badge ? '<div class="badge ' + badge[0] + '">' + psIcon(badge[1]) + " " + esc(t.badge) + "</div>" : "") +
+          '<p class="tier-name ' + (dark ? "light" : "dark") + '">' + name + " Series</p>" +
+          (t.tagline ? '<p class="tier-tagline ' + (dark ? "light" : "dark") + '">' + esc(t.tagline) + "</p>" : "") +
+          (t.warranty ? '<span class="warranty-badge ' + wb[0] + '">' + psIcon(wb[1]) + " " + esc(t.warranty) + "</span>" : "") +
+          '<div class="price-block' + (dark ? " light" : "") + '"><div class="price-amount accent-' + k + '">' + money(C.tiers[k]) + '</div><div class="price-label ' + (dark ? "dim-light" : "dim") + '">Project Total</div></div>' +
+        "</div>" +
+        '<div class="tier-body">' + body + "</div></div>";
     };
+    var dims = (E.roofs || []).filter(function (r) { return num(r.width) && num(r.proj); }).map(function (r) { return r.width + "' × " + r.proj + "'"; }).join(" + ");
+    var forBits = [E.customer.address, dims ? dims + " " + EST_TYPES[E.type].toLowerCase() : "", new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })].filter(Boolean);
+    return '<div class="ps" id="priceSheet"><div class="wrap">' +
+      '<div class="brand-header"><div class="brand-logo"><span class="brand-aa">AA</span><span class="brand-name">Advanced<br>Aluminum</span></div><div class="brand-divider"></div><span class="brand-sub">' + esc(EST_TYPES[E.type]) + " Packages</span></div>" +
+      (E.customer.name ? '<p class="ps-for">Prepared for <b>' + esc(E.customer.name) + "</b>" + (forBits.length ? "  ·  " + forBits.map(esc).join("  ·  ") : "") + "</p>" : "") +
+      '<div class="tier-grid">' + tierHTML("essential", "Essential") + tierHTML("signature", "Signature") + tierHTML("legacy", "Legacy") + "</div>" +
+      (S.footer ? '<p class="footer-note">' + psIcon("info") + " " + esc(S.footer) + "</p>" : "") +
+    "</div></div>";
+  }
+  // One portrait letter page: lay the sheet out 1000px wide, then scale it to fit the page.
+  function fitSheetForPrint() {
+    var el = $("#priceSheet"); if (!el) return;
+    document.body.classList.add("printing-sheet");
+    el.style.zoom = "";
+    var w = el.offsetWidth || 1000, h = el.scrollHeight;
+    var z = Math.min(7.7 * 96 / w, 10.2 * 96 * 0.95 / h, 1); // 8.5 x 11 with 0.4in margins, 5% to spare
+    el.style.zoom = String(Math.floor(z * 1000) / 1000);
+  }
+  function unfitSheet() { document.body.classList.remove("printing-sheet"); var el = $("#priceSheet"); if (el) el.style.zoom = ""; }
+  window.addEventListener("beforeprint", function () { if (document.body.classList.contains("presenting")) fitSheetForPrint(); });
+  window.addEventListener("afterprint", unfitSheet);
+  function savePriceSheetPDF(E) {
+    var title = document.title;
+    document.title = "Advanced Aluminum price sheet" + (E.customer.name ? " - " + E.customer.name : "");
+    fitSheetForPrint();
+    setTimeout(function () { window.print(); document.title = title; }, 50);
+  }
+  function renderPresent() {
+    var E = curEst(), C = calcEst(E);
+    var seg = function (k, name) { return '<button type="button" class="chip' + (E.tier === k ? " on" : "") + '" data-tier="' + k + '" aria-pressed="' + (E.tier === k) + '">' + name + "</button>"; };
     main.innerHTML =
       '<div class="pres">' +
-        '<div class="pres-top"><img src="logo-sm.png" alt="Advanced Aluminum" width="600" height="249"><button type="button" class="btn ghost" id="presExit">Exit</button></div>' +
-        '<div class="pres-intro"><div class="nd-eyebrow">Prepared for ' + esc(E.customer.name || "you") + "</div><h2>Your new " + esc(EST_TYPES[E.type].toLowerCase()) + "</h2>" +
-          '<p>' + esc([dims ? dims + (C.footprint ? " (" + Math.round(C.footprint).toLocaleString("en-US") + " sq ft)" : "") : "", roofs.join(" and "), wallTxt].filter(Boolean).join(" · ")) + (E.customer.address ? "<br>" + esc(E.customer.address) : "") + "</p></div>" +
-        '<div class="tgrid">' +
-          card("essential", "Essential", "Everything you need, built right", T.essential) +
-          card("signature", "Signature", "Our most chosen build", T.signature, true) +
-          card("legacy", "Legacy", "Built to be the last one you buy", T.legacy) +
-        "</div>" +
-        '<p class="pres-foot">Pricing valid for 30 days. Every project includes Advanced Aluminum\'s 10-year workmanship warranty. 321-639-1451 · advancedaluminum1.com</p>' +
+        '<div class="pres-bar"><button type="button" class="btn ghost" id="presExit">Exit</button>' +
+          '<div class="pres-choice"><span>Customer\'s choice</span>' + seg("essential", "Essential") + seg("signature", "Signature") + seg("legacy", "Legacy") + "</div>" +
+          '<button type="button" class="btn primary" id="presPdf">Save as PDF</button></div>' +
+        (C.missing.length ? '<p class="flag pres-flag">' + C.missing.length + " item" + (C.missing.length === 1 ? " has" : "s have") + " no price yet, so these prices are low.</p>" : "") +
+        priceSheetHTML(E, C) +
       "</div>";
     $("#presExit").addEventListener("click", function () { estGo({ sub: "wizard", step: EST_STEPS.length - 1 }); });
+    $("#presPdf").addEventListener("click", function () { savePriceSheetPDF(E); });
     main.querySelectorAll("[data-tier]").forEach(function (b) {
       b.addEventListener("click", function () { if (readOnly) return; E.tier = E.tier === b.dataset.tier ? "" : b.dataset.tier; estSave(E._id, 0); keepScroll(renderPresent); });
     });
@@ -3659,9 +3837,9 @@ textarea.tf { min-height: 200px; font-size: 15px; }
         '<div class="field"><label for="pbE">Essential vs Signature</label><div class="input"><input id="pbE" data-tierpct="essentialPct" inputmode="decimal" value="' + Math.round(num(P.tiers.essentialPct) * 1000) / 10 + '"><span class="post">%</span></div></div>' +
         '<div class="field"><label for="pbL">Legacy vs Signature</label><div class="input"><input id="pbL" data-tierpct="legacyPct" inputmode="decimal" value="' + Math.round(num(P.tiers.legacyPct) * 1000) / 10 + '"><span class="post">%</span></div></div>' +
         "</div>" + q("Charge design and measure on new estimates by default?", chips("includeDesignMeasure", [[true, "Yes"], [false, "No"]], !!P.includeDesignMeasure)) + "</section>" +
-      '<section class="panel"><h3>Tier features</h3><p class="sub">What the customer sees under each option, one line per feature. Signature comes from Proposal 1365-1. Replace the rest with the copy from your pricing graphic.</p><div class="tf-grid">' +
-        ["essential", "signature", "legacy"].map(function (k) { return '<div class="field"><label for="tf-' + k + '">' + k.charAt(0).toUpperCase() + k.slice(1) + ' Series</label><textarea class="notes text tf" id="tf-' + k + '" data-tf="' + k + '">' + esc((P.tiers[k] || []).join("\n")) + "</textarea></div>"; }).join("") +
-      "</div></section>" +
+      '<section class="panel"><h3>Price sheet</h3><p class="sub">What the customer sees under each option. One line each. Start a line with # for a section heading. Lines starting Badge:, Tagline:, Warranty:, Plus:, Choose one: (options split with |) and Callout: (title | text) fill those parts of the card.</p><div class="tf-grid">' +
+        ["essential", "signature", "legacy"].map(function (k) { return '<div class="field"><label for="tf-' + k + '">' + k.charAt(0).toUpperCase() + k.slice(1) + ' Series</label><textarea class="notes text tf" id="tf-' + k + '" data-tf="' + k + '">' + esc(P.tiers.sheet[k] || "") + "</textarea></div>"; }).join("") +
+        '</div><div class="field"><label for="tf-footer">Footer line</label><div class="input"><input class="text" id="tf-footer" data-tf="footer" value="' + esc(P.tiers.sheet.footer || "") + '"></div></div></section>' +
       '<div class="closeout-actions"><button class="btn primary" type="button" id="pbSave2"' + dis + '>Save price book</button><button class="btn danger" type="button" id="pbReset"' + dis + ">Reset to JobTread prices</button></div>" +
       "</fieldset>";
 
@@ -3680,7 +3858,7 @@ textarea.tf { min-height: 200px; font-size: 15px; }
     main.querySelectorAll("[data-xh]").forEach(function (el) { el.addEventListener("input", function () { var v = parseField(el.value); P.extraHrs[el.dataset.xh] = v === "" ? null : v; dirty(); }); });
     main.querySelectorAll("[data-rule]").forEach(function (el) { el.addEventListener("input", function () { var v = num(el.value); P[el.dataset.rule] = el.dataset.pct ? v / 100 : v; dirty(); }); });
     main.querySelectorAll("[data-tierpct]").forEach(function (el) { el.addEventListener("input", function () { P.tiers[el.dataset.tierpct] = num(el.value) / 100; dirty(); }); });
-    main.querySelectorAll("[data-tf]").forEach(function (el) { el.addEventListener("input", function () { P.tiers[el.dataset.tf] = el.value.split("\n").map(function (s) { return s.trim(); }).filter(Boolean); P.tiers.placeholder = false; dirty(); }); });
+    main.querySelectorAll("[data-tf]").forEach(function (el) { el.addEventListener("input", function () { P.tiers.sheet[el.dataset.tf] = el.value; dirty(); }); });
     main.querySelectorAll("[data-choice]").forEach(function (b) { b.addEventListener("click", function () { P[b.dataset.choice] = parseChoice(b.dataset.val); dirty(); keepScroll(renderBook); }); });
     var save = function () {
       ev.bookMsg = "Saving…"; var m = $("#pbMsg"); if (m) m.textContent = ev.bookMsg;
