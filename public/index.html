@@ -666,6 +666,10 @@ body.presenting .top, body.presenting .mainnav, body.presenting .foot, body.pres
 .ps .render-text span { font-size: 11px; color: #aaa; line-height: 1.4; }
 .ps .footer-note { text-align: center; font-size: 11px; color: var(--color-text-secondary); margin-top: 16px; margin-bottom: 0; }
 .ps .footer-note .ti { font-size: 12px; vertical-align: -2px; }
+.ps .ps-disc { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; color: var(--color-text-secondary); margin: 0 auto 3px; max-width: 220px; }
+.ps .tier-header.premium-header .ps-disc { color: #aaa; }
+.ps .ps-disc-rule { max-width: 220px; margin: 6px auto 10px; border-top: 0.5px solid var(--aa-gray-border); }
+.ps .tier-header.premium-header .ps-disc-rule { border-top-color: rgba(255,255,255,0.15); }
 .ps .tier-grid.one { grid-template-columns: minmax(0, 520px); justify-content: center; }
 .ps .ps-valid { margin-top: 6px; font-weight: 600; color: var(--color-text-primary); }
 @media screen {
@@ -3132,7 +3136,7 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
   function pbItem(g, label, unit, cost, price, note) { return { g: g, label: label, unit: unit, cost: cost, price: price, note: note || "" }; }
   function pbDefaults() {
     return {
-      v: 1, margin: 0.20, spanLimit: 13, laborMode: "whole", measurePct: 0.05, includeDesignMeasure: false, militaryPct: 0.05,
+      v: 1, margin: 0.20, spanLimit: 13, laborMode: "whole", measurePct: 0.05, includeDesignMeasure: false, militaryPct: 0.05, protectDiscounts: true,
       items: {
         roofScreen: pbItem("Roof", "Screen roof with 18/14 screen", "sq ft", 8.11, 10.1375, "JobTread: Roof Materials with 18/14 Screen"),
         roofUp2020: pbItem("Roof", "Roof screen upgrade to 20/20", "sq ft", 0.25, 0.2925, "Difference between 20/20 and 18/14 rescreen materials"),
@@ -3231,7 +3235,7 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
   function mergePricebook(saved) {
     var d = pbDefaults();
     if (!saved || typeof saved !== "object") return d;
-    ["margin", "spanLimit", "laborMode", "measurePct", "includeDesignMeasure", "militaryPct"].forEach(function (k) { if (saved[k] !== undefined) d[k] = saved[k]; });
+    ["margin", "spanLimit", "laborMode", "measurePct", "includeDesignMeasure", "militaryPct", "protectDiscounts"].forEach(function (k) { if (saved[k] !== undefined) d[k] = saved[k]; });
     Object.keys(saved.items || {}).forEach(function (k) {
       if (d.items[k]) { var s = saved.items[k]; d.items[k].cost = s.cost === undefined ? d.items[k].cost : s.cost; d.items[k].price = s.price === undefined ? d.items[k].price : s.price; }
     });
@@ -3443,11 +3447,24 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
       lines.push({ sec: "Site & fees", label: "Design & measure ($" + num(P.designFee.price) + " + " + Math.round(num(pricebook.measurePct) * 100) + "% measure)", qty: 1, unit: "", unitPrice: design, unitCost: null, price: design, cost: null, kind: "fee" });
     }
     var gross = subtotal + design;
-    var military = E.military ? gross * num(pricebook.militaryPct) : 0;
-    var discount = Math.min(num(E.discount), gross - military);
-    var total = Math.max(0, gross - military - discount);
-    var T = pricebook.tiers;
-    var tiers = RS || SV ? { essential: Math.round(total), signature: Math.round(total), legacy: Math.round(total) } : { essential: Math.round(total * (1 + num(T.essentialPct))), signature: Math.round(total), legacy: Math.round(total * (1 + num(T.legacyPct))) };
+    // Discounts. With "protect margin" on, the price before discounts is grossed up so the
+    // customer still pays what the job is worth: (price + $ discount) ÷ (1 − military %).
+    var T = pricebook.tiers, protect = pricebook.protectDiscounts !== false;
+    var mPct = E.military ? Math.min(0.9, Math.max(0, num(pricebook.militaryPct))) : 0, dAmt = Math.max(0, num(E.discount));
+    var hasDiscount = mPct > 0 || dAmt > 0;
+    var pcts = RS || SV ? { essential: 0, signature: 0, legacy: 0 } : { essential: num(T.essentialPct), signature: 0, legacy: num(T.legacyPct) };
+    var tierBreak = {};
+    Object.keys(pcts).forEach(function (k) {
+      var base = gross * (1 + pcts[k]), before, mil, dsc, fin;
+      if (protect) { before = (base + dAmt) / (1 - mPct); mil = before * mPct; dsc = dAmt; fin = base; }
+      else { before = base; mil = base * mPct; dsc = Math.min(dAmt, base - mil); fin = Math.max(0, base - mil - dsc); }
+      var finR = Math.round(fin), milR = Math.round(mil), dscR = Math.round(dsc);
+      tierBreak[k] = { before: before, military: mil, discount: dsc, final: fin, show: { before: finR + milR + dscR, military: milR, discount: dscR, final: finR } };
+    });
+    var sigB = tierBreak.signature;
+    var military = sigB.military, discount = sigB.discount, total = sigB.final;
+    var protection = protect && hasDiscount ? sigB.before - gross : 0;
+    var tiers = { essential: tierBreak.essential.show.final, signature: tierBreak.signature.show.final, legacy: tierBreak.legacy.show.final };
 
     var sum = function (f) { return lines.filter(f).reduce(function (s, l) { return s + l.price; }, 0); };
     var matCost = lines.filter(function (l) { return l.kind === "mat"; }).reduce(function (s, l) { return s + (l.cost === null ? l.price * marginDiv : l.cost); }, 0);
@@ -3461,7 +3478,7 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
     return {
       lines: lines, secs: secs, missing: missing, outs: outs, footprint: footprint, screenArea: screenArea, compositeSqft: compositeSqft, kickLf: kickLf, windowSqft: windowSqft,
       baseHrs: base.hrs, baseNote: base.note, extras: extras, extraHrs: extraHrs, calcHrs: calcHrs, hours: hours, overridden: overridden, laborRate: rate, flags: flags,
-      subtotal: subtotal, design: design, military: military, discount: discount, total: total, tiers: tiers,
+      subtotal: subtotal, design: design, military: military, discount: discount, total: total, tiers: tiers, tierBreak: tierBreak, hasDiscount: hasDiscount, protection: protection, beforeDiscounts: sigB.before,
       matCost: matCost, subs: subs, eng: eng, teamHours: hours + demoHrs + otherHrs, otherHrs: otherHrs
     };
   }
@@ -3750,7 +3767,8 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
         (c.mode === "us" ? '<div class="field" style="max-width:260px"><label for="cc">Concrete sub\'s price to us</label><div class="input"><span class="pre">$</span><input id="cc" data-e="concrete.cost" data-kind="num" inputmode="decimal" value="' + esc(blank(c.cost) ? "" : c.cost) + '" placeholder="0"></div><span class="help">Marked up to a ' + Math.round(num(pricebook.margin) * 100) + "% margin</span></div>" : "") : "") +
         q("Engineering and building permit", yesNo("permit", E.permit !== false), usd2.format(num(pricebook.items.permit.price)) + " per job") +
         q("Charge design and measure?", yesNo("designMeasure", E.designMeasure), "$" + num(pricebook.items.designFee.price) + " design plus " + Math.round(num(pricebook.measurePct) * 100) + "% of the price for the measure") +
-        q("Military discount (" + Math.round(num(pricebook.militaryPct) * 100) + "%)?", yesNo("military", E.military)) +
+        q("Military discount (" + Math.round(num(pricebook.militaryPct) * 100) + "%)?", yesNo("military", E.military),
+          pricebook.protectDiscounts !== false ? "Discounts are margin-protected: the price before discounts goes up so the customer still pays the full price. The customer\'s sheet shows the discount." : "The customer\'s sheet shows the discount.") +
         '<div class="field" style="max-width:260px"><label for="disc">Other discount</label><div class="input"><span class="pre">$</span><input id="disc" data-e="discount" data-kind="num" inputmode="decimal" value="' + esc(blank(E.discount) ? "" : E.discount) + '" placeholder="0"></div></div>' +
         otherItemsHtml(E) +
         '<div class="field"><label for="enotes">Notes for the office</label><textarea class="notes text" id="enotes" data-e="notes" data-kind="text" placeholder="Access, HOA, existing slab condition…">' + esc(E.notes || "") + "</textarea></div>";
@@ -3923,6 +3941,8 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
             return "<tr><td>" + esc(l.label) + (l.missing ? ' <span class="miss-pill">No price</span>' : "") + (l.other ? ' <span class="other-pill">' + (l.kind === "labor" ? "Labor" : l.kind === "sub" ? "Sub" : "Material") + ", added by hand</span>" : "") + '</td><td class="muted">' + (l.unit ? (Math.round(l.qty * 10) / 10).toLocaleString("en-US") + " " + l.unit + '<span class="why">@ ' + usd2.format(l.unitPrice) + "</span>" : "") + "</td><td>" + money(l.price, true) + "</td></tr>";
           }).join("");
         }).join("") +
+        (C.protection ? '<tr><td>Discount protection <span class="other-pill">Added so the discount doesn\'t come out of the margin</span></td><td></td><td>' + money(C.protection, true) + "</td></tr>" : "") +
+        (C.hasDiscount ? '<tr class="rv-sec"><td colspan="2">Price before discounts</td><td>' + money(C.beforeDiscounts, true) + "</td></tr>" : "") +
         (C.military ? '<tr><td>Military discount</td><td></td><td class="neg">−' + money(C.military, true) + "</td></tr>" : "") +
         (C.discount ? '<tr><td>Discount</td><td></td><td class="neg">−' + money(C.discount, true) + "</td></tr>" : "") +
         '<tr class="result"><td>' + (one ? "Price" : "Signature price") + "</td><td></td><td>" + money(C.total, true) + "</td></tr>" +
@@ -4019,6 +4039,14 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
     });
     return t;
   }
+  function psDiscountLines(C, k) {
+    if (!C.hasDiscount) return "";
+    var b = C.tierBreak[k].show;
+    return '<div class="ps-disc"><span>Price</span><span>' + money(b.before) + "</span></div>" +
+      (b.military ? '<div class="ps-disc"><span>Military discount</span><span>−' + money(b.military) + "</span></div>" : "") +
+      (b.discount ? '<div class="ps-disc"><span>Discount</span><span>−' + money(b.discount) + "</span></div>" : "") +
+      '<div class="ps-disc-rule"></div>';
+  }
   function priceSheetHTML(E, C) {
     var S = pricebook.tiers.sheet;
     var tierHTML = function (k, name) {
@@ -4039,7 +4067,7 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
           '<p class="tier-name ' + (dark ? "light" : "dark") + '">' + name + " Series</p>" +
           (t.tagline ? '<p class="tier-tagline ' + (dark ? "light" : "dark") + '">' + esc(t.tagline) + "</p>" : "") +
           (t.warranty ? '<span class="warranty-badge ' + wb[0] + '">' + psIcon(wb[1]) + " " + esc(t.warranty) + "</span>" : "") +
-          '<div class="price-block' + (dark ? " light" : "") + '"><div class="price-amount accent-' + k + '">' + money(C.tiers[k]) + '</div><div class="price-label ' + (dark ? "dim-light" : "dim") + '">Project Total</div></div>' +
+          '<div class="price-block' + (dark ? " light" : "") + '">' + psDiscountLines(C, k) + '<div class="price-amount accent-' + k + '">' + money(C.tiers[k]) + '</div><div class="price-label ' + (dark ? "dim-light" : "dim") + '">' + (C.hasDiscount ? "Your price" : "Project Total") + "</div></div>" +
         "</div>" +
         '<div class="tier-body">' + body + "</div></div>";
     };
@@ -4079,7 +4107,7 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
       '<div class="tier-grid one"><div class="tier-card featured"><div class="tier-header">' +
         '<p class="tier-name dark">' + (E.type === "rescreen" ? "Enclosure Rescreen" : "Service") + "</p>" +
         '<p class="tier-tagline dark">' + (E.type === "rescreen" ? "New screen on your existing enclosure." : "Repairs and replacement on your existing structure.") + "</p>" +
-        '<div class="price-block"><div class="price-amount accent-signature">' + money(C.total) + '</div><div class="price-label dim">Project Total</div></div>' +
+        '<div class="price-block">' + psDiscountLines(C, "signature") + '<div class="price-amount accent-signature">' + money(C.tiers.signature) + '</div><div class="price-label dim">' + (C.hasDiscount ? "Your price" : "Project Total") + "</div></div>" +
       '</div><div class="tier-body"><p class="section-label">What\'s included</p><ul class="feature-list">' +
         items.map(function (x) { return "<li>" + psIcon("check", "ck-s") + esc(x) + "</li>"; }).join("") + "</ul></div></div></div>" +
       (S.validity ? '<p class="footer-note ps-valid">' + esc(S.validity).replace(/\{(\d+) days?\}/gi, function (m, n) { var d = new Date(); d.setDate(d.getDate() + Number(n)); return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }); }) + "</p>" : "") +
@@ -4159,7 +4187,9 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
         '<div class="field"><label for="pbMil">Military discount</label><div class="input"><input id="pbMil" data-rule="militaryPct" data-pct="1" inputmode="decimal" value="' + Math.round(num(P.militaryPct) * 1000) / 10 + '"><span class="post">%</span></div></div>' +
         '<div class="field"><label for="pbE">Essential vs Signature</label><div class="input"><input id="pbE" data-tierpct="essentialPct" inputmode="decimal" value="' + Math.round(num(P.tiers.essentialPct) * 1000) / 10 + '"><span class="post">%</span></div></div>' +
         '<div class="field"><label for="pbL">Legacy vs Signature</label><div class="input"><input id="pbL" data-tierpct="legacyPct" inputmode="decimal" value="' + Math.round(num(P.tiers.legacyPct) * 1000) / 10 + '"><span class="post">%</span></div></div>' +
-        "</div>" + q("Charge design and measure on new estimates by default?", chips("includeDesignMeasure", [[true, "Yes"], [false, "No"]], !!P.includeDesignMeasure)) + "</section>" +
+        "</div>" + q("Charge design and measure on new estimates by default?", chips("includeDesignMeasure", [[true, "Yes"], [false, "No"]], !!P.includeDesignMeasure)) +
+        q("Protect margin on discounts?", chips("protectDiscounts", [[true, "Yes", "Price goes up so the discount comes out of the price, not the margin"], [false, "No", "Discounts lower the price"]], P.protectDiscounts !== false),
+          "Percentage discounts are grossed up by dividing (price ÷ 0.95 for 5%), so the customer pays exactly the full price after the discount.") + "</section>" +
       '<section class="panel"><h3>Price sheet</h3><p class="sub">What the customer sees under each option. One line each. Start a line with # for a section heading. Lines starting Badge:, Tagline:, Warranty:, Plus:, Choose one: (options split with |) and Callout: (title | text) fill those parts of the card.</p><div class="tf-grid">' +
         ["essential", "signature", "legacy"].map(function (k) { return '<div class="field"><label for="tf-' + k + '">' + k.charAt(0).toUpperCase() + k.slice(1) + ' Series</label><textarea class="notes text tf" id="tf-' + k + '" data-tf="' + k + '">' + esc(P.tiers.sheet[k] || "") + "</textarea></div>"; }).join("") +
         '</div><div class="field"><label for="tf-footer">Footer line</label><div class="input"><input class="text" id="tf-footer" data-tf="footer" value="' + esc(P.tiers.sheet.footer || "") + '"></div></div>' +
