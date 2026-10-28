@@ -1583,7 +1583,7 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
   var sampleFn = null, assetsNs = null;
   var pendingByJob = new Map(); // jobId -> [{id, name, status, data, info, file}]
   var invoices = new Map(); // emailed vendor invoices (see supabase/functions/invoice-inbox)
-  var invFiling = new Set(), myName = "";
+  var invFiling = new Set(), myName = "", isAdmin = false;
   var readQueue = Promise.resolve();
   var PDFJS = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
   var PDFWORKER = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
@@ -3571,7 +3571,7 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
     ev = { sub: "list", id: null, step: 0 }; renderEst();
   }
   function savePricebook() {
-    if (mode === "live" && !readOnly) {
+    if (mode === "live" && !readOnly && isAdmin) {
       var body = clone(pricebook); body.updatedAt = new Date().toISOString();
       return db.doc("settings/pricebook").set(body).then(function () { saveError = false; setSaveState(); return true; }).catch(function (e) { handleWriteError(e); return false; });
     }
@@ -4220,7 +4220,8 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
 
   /* ---------- price book ---------- */
   function renderBook() {
-    var P = pricebook, dis = readOnly ? " disabled" : "", miss = pbMissingCount();
+    var locked = readOnly || (mode === "live" && !isAdmin);
+    var P = pricebook, dis = locked ? " disabled" : "", miss = pbMissingCount();
     var groups = PB_GROUPS.map(function (g) {
       var keys = Object.keys(P.items).filter(function (k) { return P.items[k].g === g; });
       return '<section class="panel"><h3>' + g + '</h3><div class="table-scroll"><table class="bills pb"><thead><tr><th>Item</th><th>Unit</th><th class="r">Our cost</th><th class="r">Customer price</th></tr></thead><tbody>' +
@@ -4244,6 +4245,7 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
       '<div class="est-head"><div><h2 class="nd-title">Price <span>Book</span></h2><p class="sub" style="margin:6px 0 0">Loaded from your JobTread catalog (October 27, 2026). Customer price is cost ÷ ' + (1 - num(P.margin)).toFixed(2) + " for a " + Math.round(num(P.margin) * 100) + "% margin; changing a cost updates its price. " + (miss ? "<b>" + miss + " items still need a price.</b>" : "") + "</p></div>" +
       '<div class="est-head-acts"><button class="btn primary" type="button" id="pbSave"' + dis + '>Save price book</button></div></div>' +
       '<p class="help" id="pbMsg" aria-live="polite">' + esc(ev.bookMsg || "") + "</p>" +
+      (locked && !readOnly ? '<div class="banner" role="status"><strong>Only admins can change prices.</strong> You can look through the price book; every estimate uses these prices.</div>' : "") +
       '<fieldset class="stack"' + dis + ">" + groups +
       '<section class="panel"><h3>Labor hours</h3><p class="sub">Hours = footprint × factor. JobTread applies one factor to the whole footprint, which jumps at each breakpoint (599 sq ft gets 71.9 hours, 601 gets 36.7). Bracketed applies each factor only to the square feet inside its range.</p>' +
         q("How factors apply", chips("laborMode", [["whole", "Whole footprint", "How JobTread does it"], ["bracket", "Bracketed", "No price jumps"]], P.laborMode)) +
@@ -4390,6 +4392,7 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
     Promise.resolve(c.use("downloads")).then(function (d) { downloadsNs = d || null; if (downloadsNs && view.name === "job") renderJob(); }).catch(function () {});
     Promise.all([c.use("db"), c.use("user").catch(function () { return null; })]).then(function (res) {
       var dbNs = res[0], user = res[1];
+      if (user && typeof user.isOwner === "function") Promise.resolve(user.isOwner()).then(function (a) { isAdmin = !!a; if (view.name === "est" && ev.sub === "book") renderBook(); }).catch(function () {});
       if (user && typeof user.me === "function") Promise.resolve(user.me()).then(function (m) { if (m) myName = m.name || m.email || ""; }).catch(function () {});
       if (!dbNs) { startLocal(); return; }
       if (user && typeof user.can === "function") {

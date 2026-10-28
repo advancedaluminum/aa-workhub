@@ -43,7 +43,8 @@ start.
    and pick a US East region.
 2. When it's ready, open **SQL Editor → New query**. Paste the whole of
    `supabase/migrations/0001_init.sql` and click **Run**.
-   Then do the same with `supabase/migrations/0002_estimates.sql` (saved field estimates).
+   Then do the same with `supabase/migrations/0002_estimates.sql` (saved field estimates) and
+   `supabase/migrations/0004_pricebook_admins.sql` (only admins can change the price book).
 3. Add yourself as the first admin. In a new query, run this with your email:
    ```sql
    insert into public.members (email, name, role)
