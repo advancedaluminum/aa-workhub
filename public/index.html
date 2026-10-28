@@ -652,6 +652,7 @@ body.presenting .top, body.presenting .mainnav, body.presenting .foot, body.pres
 .ps .render-text span { font-size: 11px; color: #aaa; line-height: 1.4; }
 .ps .footer-note { text-align: center; font-size: 11px; color: var(--color-text-secondary); margin-top: 16px; margin-bottom: 0; }
 .ps .footer-note .ti { font-size: 12px; vertical-align: -2px; }
+.ps .ps-valid { margin-top: 6px; font-weight: 600; color: var(--color-text-primary); }
 @media screen {
   .ps .tier-card.chosen { box-shadow: 0 0 0 3px #fff, 0 0 0 6px var(--good); }
 }
@@ -3093,6 +3094,7 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
             "# Annual maintenance", "1 complimentary annual inspection", "Door, hardware & fastener review", "Drainage & structural check",
             "Callout: 3D Rendering Included | See your enclosure before we build it \u2014 a photorealistic 3D render of your project, personalized to your home."
           ].join("\n"),
+          validity: "Pricing valid for 30 days.",
           footer: "Signature Protection Plan\u2122 \u00a0\u00b7\u00a0 Legacy Lifetime Protection\u2122 \u00a0\u00b7\u00a0 All packages include permit handling & final walkthrough"
         }
       }
@@ -3760,6 +3762,7 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
       (E.customer.name ? '<p class="ps-for">Prepared for <b>' + esc(E.customer.name) + "</b>" + (forBits.length ? "  ·  " + forBits.map(esc).join("  ·  ") : "") + "</p>" : "") +
       '<div class="tier-grid">' + tierHTML("essential", "Essential") + tierHTML("signature", "Signature") + tierHTML("legacy", "Legacy") + "</div>" +
       (S.footer ? '<p class="footer-note">' + psIcon("info") + " " + esc(S.footer) + "</p>" : "") +
+      (S.validity ? '<p class="footer-note ps-valid">' + esc(S.validity) + "</p>" : "") +
     "</div></div>";
   }
   // One portrait letter page: lay the sheet out 1000px wide, then scale it to fit the page.
@@ -3839,7 +3842,8 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
         "</div>" + q("Charge design and measure on new estimates by default?", chips("includeDesignMeasure", [[true, "Yes"], [false, "No"]], !!P.includeDesignMeasure)) + "</section>" +
       '<section class="panel"><h3>Price sheet</h3><p class="sub">What the customer sees under each option. One line each. Start a line with # for a section heading. Lines starting Badge:, Tagline:, Warranty:, Plus:, Choose one: (options split with |) and Callout: (title | text) fill those parts of the card.</p><div class="tf-grid">' +
         ["essential", "signature", "legacy"].map(function (k) { return '<div class="field"><label for="tf-' + k + '">' + k.charAt(0).toUpperCase() + k.slice(1) + ' Series</label><textarea class="notes text tf" id="tf-' + k + '" data-tf="' + k + '">' + esc(P.tiers.sheet[k] || "") + "</textarea></div>"; }).join("") +
-        '</div><div class="field"><label for="tf-footer">Footer line</label><div class="input"><input class="text" id="tf-footer" data-tf="footer" value="' + esc(P.tiers.sheet.footer || "") + '"></div></div></section>' +
+        '</div><div class="field"><label for="tf-footer">Footer line</label><div class="input"><input class="text" id="tf-footer" data-tf="footer" value="' + esc(P.tiers.sheet.footer || "") + '"></div></div>' +
+        '<div class="field"><label for="tf-validity">Pricing valid line</label><div class="input"><input class="text" id="tf-validity" data-tf="validity" value="' + esc(P.tiers.sheet.validity || "") + '"></div></div></section>' +
       '<div class="closeout-actions"><button class="btn primary" type="button" id="pbSave2"' + dis + '>Save price book</button><button class="btn danger" type="button" id="pbReset"' + dis + ">Reset to JobTread prices</button></div>" +
       "</fieldset>";
 
