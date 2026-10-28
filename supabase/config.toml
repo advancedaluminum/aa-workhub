@@ -1,0 +1,5 @@
+# Only used if you deploy with the Supabase command line.
+# The invoice inbox is called by the Google script, not a signed-in person,
+# so it checks its own INBOX_SECRET instead of a sign-in token.
+[functions.invoice-inbox]
+verify_jwt = false

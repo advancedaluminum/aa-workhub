@@ -11,8 +11,11 @@ sunrooms, cover areas, screen rooms). Static site in `public/`, Supabase backend
   Net profit = gross − overhead. Jobs count in a period by their **completed date**.
 - Security lives in `supabase/migrations/0001_init.sql` (row-level security on `members`).
   Add new migrations as new numbered files; don't edit applied ones.
-- The Claude API key is only ever a Supabase secret used by `supabase/functions/claude`.
-  Never put keys in `public/`.
+- The Claude API key is only ever a Supabase secret used by `supabase/functions/claude` and
+  `supabase/functions/invoice-inbox`. Never put keys in `public/`.
+- Emailed vendor invoices: `google/invoice-inbox.gs` (Gmail label "WorkHub Invoices") posts
+  attachments to `invoice-inbox`, which writes the `invoices` table. The app files `matched`
+  ones as bills (bill id = invoice id) and lists `review` ones on the Jobs page.
 - Never commit job data or backups (see `.gitignore`).
 - Branding: Advanced Aluminum red `#DD2420`, Barlow Condensed headings, Source Sans 3 body,
   IBM Plex Mono numbers.

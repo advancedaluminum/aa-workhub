@@ -17,6 +17,7 @@ PDF and Excel reports, and spreadsheet import.
 | Database | `supabase/migrations/0001_init.sql` | Tables, security rules and the bill-file storage. |
 | Estimates | `supabase/migrations/0002_estimates.sql` | The table for saved field estimates. |
 | Claude features | `supabase/functions/claude/index.ts` | Reads bills and writes insights with the company's Claude API key, kept on the server. |
+| Emailed invoices | `supabase/functions/invoice-inbox/index.ts`, `google/invoice-inbox.gs` | Vendor invoices emailed to the company Gmail are read and filed on their job. |
 | Hosting | `netlify.toml` | Tells Netlify to publish the `public` folder. |
 
 **Signing in:** people sign in with their email and a password. The first time (and if they
@@ -160,6 +161,50 @@ In the hub, click **Team**, add each person's name and email, choose **editor** 
 with email and password. No Claude account is needed.
 
 Anyone can change their password from **Password** at the top of the app.
+
+### 9. Emailed vendor invoices (optional)
+
+Vendor invoices emailed to the company Gmail go straight into WorkHub. Claude reads each one
+and matches the customer name on it to a job. A sure match on an open job is added to that
+job's **Material bills** by itself. Anything WorkHub isn't sure about waits at the top of the
+**Jobs** page under **Emailed invoices**, where you pick the job and click **Add to job**.
+
+**a. Database.** In **SQL Editor**, run `supabase/migrations/0003_invoice_inbox.sql`.
+
+**b. A password for the inbox.** In your password manager, make a random password of at least
+32 letters and numbers. You'll paste it in two places below, and nowhere else.
+
+**c. The function.** **Edge Functions → Deploy a new function → Via editor**, name it exactly
+`invoice-inbox`, paste the whole of `supabase/functions/invoice-inbox/index.ts`, and **Deploy**.
+Then open the function's **Details** and turn **Verify JWT with legacy secret** (or
+**Enforce JWT verification**) **off**, and save. (The Google script doesn't sign in; the
+inbox password protects it instead.)
+In **Edge Functions → Secrets**, add `INBOX_SECRET` = the password from step b.
+(`AA_SECRET_KEY` and `ANTHROPIC_API_KEY` are already there.)
+
+**d. Gmail filter.** Signed in to the Google account that receives vendor invoices, open Gmail →
+the search box's options (the sliders icon):
+- **From:** the vendors' billing addresses, separated by `OR`
+  (for example `billing@vendor1.com OR ar@vendor2.com`)
+- **Has attachment:** checked
+- **Create filter → Apply the label → New label:** `WorkHub Invoices`. Also check
+  **Also apply filter to matching conversations** if you want recent invoices sent too.
+
+To add a vendor later, edit this filter's **From** line. You can also put the label on any
+email by hand and it will be sent.
+
+**e. Google script.** Same Google account, go to **script.google.com → New project**.
+1. Name it `WorkHub invoice inbox`. Replace everything in `Code.gs` with
+   `google/invoice-inbox.gs` and click **Save**.
+2. **Project Settings** (gear) → **Script Properties** → add
+   - `INBOX_URL` = `https://<your-project>.supabase.co/functions/v1/invoice-inbox`
+   - `INBOX_SECRET` = the password from step b
+3. Back in the editor, pick **setup** in the function menu and click **Run**. Approve the Gmail
+   permissions Google asks for.
+
+It now checks every 10 minutes. Emails that reach WorkHub get a second label,
+`WorkHub Invoices/Sent`. Under **Executions** in the script you can see each run and any
+errors.
 
 ---
 

@@ -241,6 +241,16 @@ button.jrow:hover { background: var(--bg); }
 .billdrop .ico::after { content: "PDF"; position: absolute; left: -6px; right: -6px; bottom: 6px; background: var(--bronze); color: var(--bronze-ink); font: 700 9px/14px var(--font-body); text-align: center; border-radius: 2px; }
 .pending { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
 .pending:empty { display: none; }
+.inbox h3 .count { font-family: var(--font-body); font-size: 13px; font-weight: 700; color: var(--bronze-ink); background: var(--bronze); border-radius: 999px; padding: 2px 10px; margin-left: 8px; vertical-align: 3px; letter-spacing: 0; text-transform: none; }
+.inbox { margin-bottom: 18px; }
+.inv-list { display: flex; flex-direction: column; gap: 12px; margin-top: 10px; }
+.pcard.inv .pgrid .span2 { grid-column: 1 / -1; }
+.pcard.inv select { width: 100%; font-size: 16px; padding: 10px; border: 0; background: transparent; font-family: var(--font-body); }
+.inv-msg { color: var(--bad); font-size: 13.5px; font-weight: 600; }
+.inv-recent { margin-top: 12px; }
+.inv-recent summary { cursor: pointer; font-weight: 600; color: var(--ink-2); }
+.inv-recent ul { list-style: none; margin: 8px 0 0; padding: 0; }
+.inv-recent li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
 .pcard { border: 1px solid var(--line); border-left: 4px solid var(--bronze); border-radius: var(--r); padding: 12px 14px; background: var(--surface); display: flex; flex-direction: column; gap: 10px; }
 .pcard.reading { border-left-color: var(--ink-2); }
 .pcard.error { border-left-color: var(--bad); }
@@ -990,7 +1000,8 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
       rows = '<div class="jrow head"><span>Job</span><span>Status</span><span class="r">Price</span><span class="r">Est. net</span><span class="r">Progress / result</span></div>' +
         list.map(jobRow).join("");
     }
-    main.innerHTML = tiles + toolbar + '<div class="jobs">' + rows + "</div>";
+    main.innerHTML = inboxPanel() + tiles + toolbar + '<div class="jobs">' + rows + "</div>";
+    bindInbox();
 
     main.querySelectorAll("[data-filter]").forEach(function (b) { b.addEventListener("click", function () { view.filter = b.dataset.filter; renderList(); }); });
     main.querySelectorAll("[data-job]").forEach(function (b) { b.addEventListener("click", function () { openJob(b.dataset.job); }); });
@@ -1526,6 +1537,8 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
   /* ---------- bill PDF reader ---------- */
   var sampleFn = null, assetsNs = null;
   var pendingByJob = new Map(); // jobId -> [{id, name, status, data, info, file}]
+  var invoices = new Map(); // emailed vendor invoices (see supabase/functions/invoice-inbox)
+  var invFiling = new Set(), myName = "";
   var readQueue = Promise.resolve();
   var PDFJS = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
   var PDFWORKER = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
@@ -1793,6 +1806,107 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
     renderPending();
   }
 
+
+  /* ---------- emailed invoices ---------- */
+  function invSave(id, patch) {
+    var inv = invoices.get(id); if (!inv) return Promise.resolve();
+    Object.assign(inv, patch);
+    if (mode !== "live" || readOnly) return Promise.resolve();
+    return db.collection("invoices").doc(id).update(patch).catch(function () {});
+  }
+  function invToBill(inv, b) {
+    var bill = { id: inv._id, date: b.date || String(inv.receivedAt || "").slice(0, 10) || today(), vendor: String(b.vendor || "").trim(), ref: String(b.ref || "").trim(), amount: Math.round(num(b.amount) * 100) / 100, source: "email" };
+    if (inv.filePath) { bill.fileId = inv.filePath; bill.fileUrl = inv.fileUrl || "bill:" + inv.filePath; bill.fileName = inv.fileName || "invoice"; }
+    return bill;
+  }
+  function fileInvoice(inv, jobId, b, auto) {
+    var j = jobs.get(jobId); if (!j || readOnly) return false;
+    j.bills = j.bills || [];
+    if (!j.bills.some(function (x) { return x.id === inv._id; })) { j.bills.push(invToBill(inv, b || inv.bill || {})); queueSave(j._id, 0); }
+    invSave(inv._id, { status: "filed", jobId: jobId, filedAt: new Date().toISOString(), filedBy: auto ? "" : (myName || "a teammate") });
+    return true;
+  }
+  // Sure matches (decided by the inbox function) go straight onto their job.
+  function autoFileInvoices() {
+    if (mode !== "live" || readOnly || !loaded) return;
+    var changed = false;
+    invoices.forEach(function (inv) {
+      if (inv.status !== "matched" || invFiling.has(inv._id)) return;
+      invFiling.add(inv._id);
+      var j = jobs.get(inv.jobId);
+      if (!j || j.status === "closed") { invSave(inv._id, { status: "review", reason: j ? "That job was closed before this invoice arrived." : "The matched job no longer exists." }); changed = true; return; }
+      if (fileInvoice(inv, inv.jobId, null, true)) changed = true;
+    });
+    if (changed && view.name === "list") renderList();
+  }
+  function invReview() { return Array.from(invoices.values()).filter(function (v) { return v.status === "review"; }).sort(function (a, b) { return String(b.receivedAt).localeCompare(String(a.receivedAt)); }); }
+  function invRecent() {
+    var since = new Date(Date.now() - 14 * 864e5).toISOString();
+    return Array.from(invoices.values()).filter(function (v) { return v.status === "filed" && String(v.filedAt || "") >= since; }).sort(function (a, b) { return String(b.filedAt).localeCompare(String(a.filedAt)); });
+  }
+  function inboxPanel() {
+    var rev = invReview(), rec = invRecent();
+    if (!rev.length && !rec.length) return "";
+    var opts = function (sel) {
+      var open = sortedJobs().filter(function (j) { return j.status !== "closed"; }), closed = sortedJobs().filter(function (j) { return j.status === "closed"; }).slice(0, 40);
+      var o = function (j) { return '<option value="' + esc(j._id) + '"' + (j._id === sel ? " selected" : "") + ">" + esc(j.name || "Untitled job") + (j.location ? " · " + esc(j.location) : "") + "</option>"; };
+      return '<option value="">Choose a job…</option><optgroup label="Open">' + open.map(o).join("") + "</optgroup>" + (closed.length ? '<optgroup label="Closed">' + closed.map(o).join("") + "</optgroup>" : "");
+    };
+    var card = function (inv) {
+      var b = inv.bill || {}, i = inv.info || {}, idp = "iv" + inv._id.slice(-10);
+      var bits = [];
+      if (i.jobRef) bits.push("<span>Invoice says: <b>" + esc(i.jobRef) + "</b></span>");
+      if (inv.from) bits.push("<span>From " + esc(inv.from) + "</span>");
+      if (inv.reason) bits.push("<span>" + esc(inv.reason) + "</span>");
+      if (inv.duplicateOf) bits.push('<span class="badtxt">This invoice number is already on a job. Check before adding it again.</span>');
+      if (i.isInvoice === false) bits.push('<span class="warn">This may not be an invoice (a statement, quote or receipt?).</span>');
+      if (i.credit) bits.push('<span class="warn">This looks like a credit. It will reduce material costs.</span>');
+      if (i.notes) bits.push("<span>" + esc(i.notes) + "</span>");
+      var sj = inv.jobId && jobs.get(inv.jobId);
+      if (sj && sj.status === "closed") bits.push('<span class="warn">The suggested job is closed. Adding a bill changes its final numbers.</span>');
+      return '<div class="pcard inv" data-inv="' + esc(inv._id) + '">' +
+        '<div class="phead"><span class="pfile">' + esc(inv.fileName || "Invoice") + '</span><span class="pstat">' + esc(fmtDate(String(inv.receivedAt || "").slice(0, 10))) + "</span></div>" +
+        '<div class="pgrid">' +
+          '<div class="field"><label for="' + idp + 'd">Date</label><div class="input"><input class="text" type="date" id="' + idp + 'd" data-if="date" value="' + esc(b.date || "") + '"></div></div>' +
+          '<div class="field"><label for="' + idp + 'v">Supplier</label><div class="input"><input class="text" id="' + idp + 'v" data-if="vendor" value="' + esc(b.vendor || "") + '" autocomplete="off"></div></div>' +
+          '<div class="field"><label for="' + idp + 'r">Invoice #</label><div class="input"><input class="text" id="' + idp + 'r" data-if="ref" value="' + esc(b.ref || "") + '" autocomplete="off"></div></div>' +
+          '<div class="field"><label for="' + idp + 'a">Amount</label><div class="input"><span class="pre">$</span><input id="' + idp + 'a" data-if="amount" inputmode="decimal" value="' + (b.amount === null || b.amount === "" || b.amount === undefined ? "" : num(b.amount).toFixed(2)) + '" autocomplete="off"></div></div>' +
+          '<div class="field span2"><label for="' + idp + 'j">Job</label><div class="input"><select id="' + idp + 'j" data-if="job">' + opts(inv.jobId) + "</select></div></div>" +
+        "</div>" +
+        (bits.length ? '<div class="pinfo">' + bits.join("") + "</div>" : "") +
+        '<div class="pacts"><button class="btn primary" type="button" data-invadd' + (readOnly ? " disabled" : "") + '>Add to job</button><button class="btn ghost" type="button" data-invdismiss' + (readOnly ? " disabled" : "") + ">Not a job bill</button>" +
+          (inv.fileUrl ? '<a class="filelink" href="' + esc(inv.fileUrl) + '" target="_blank" rel="noopener">View invoice</a>' : "") + '<span class="inv-msg" role="status"></span></div>' +
+      "</div>";
+    };
+    var recent = rec.length ? '<details class="inv-recent"' + (rev.length ? "" : " open") + "><summary>Filed from email in the last 2 weeks (" + rec.length + ")</summary><ul>" +
+      rec.slice(0, 25).map(function (inv) { var j = jobs.get(inv.jobId), b = inv.bill || {}; return "<li><span>" + esc(b.vendor || "Invoice") + (b.ref ? " #" + esc(b.ref) : "") + " · " + usd2.format(num(b.amount)) + '</span><span class="jmeta">' + (j ? '<button type="button" class="linkbtn" data-invjob="' + esc(j._id) + '">' + esc(j.name || "Job") + "</button>" : "job removed") + (inv.filedBy ? " · by " + esc(inv.filedBy) : " · automatically") + "</span></li>"; }).join("") + "</ul></details>" : "";
+    return '<section class="panel inbox" id="invInbox"><h3>Emailed invoices' + (rev.length ? ' <span class="count">' + rev.length + " need a job</span>" : "") + "</h3>" +
+      (rev.length ? '<p class="sub">These came in by email, but WorkHub wasn\'t sure which job they belong to. Check the details, pick the job, and add them.</p><div class="inv-list">' + rev.map(card).join("") + "</div>" : '<p class="sub">Every emailed invoice has been filed.</p>') +
+      recent + "</section>";
+  }
+  function bindInbox() {
+    var box = $("#invInbox"); if (!box) return;
+    box.querySelectorAll("[data-invjob]").forEach(function (b) { b.addEventListener("click", function () { openJob(b.dataset.invjob); }); });
+    box.querySelectorAll("[data-inv]").forEach(function (el) {
+      var inv = invoices.get(el.dataset.inv); if (!inv) return;
+      var val = function (k) { var f = el.querySelector('[data-if="' + k + '"]'); return f ? f.value : ""; };
+      var msg = el.querySelector(".inv-msg");
+      el.querySelector("[data-invadd]").addEventListener("click", function () {
+        var jobId = val("job"), amt = parseField(val("amount"));
+        if (!jobId) { msg.textContent = "Pick the job first."; el.querySelector('[data-if="job"]').focus(); return; }
+        if (amt === "" || amt === 0) { msg.textContent = "Enter the amount."; el.querySelector('[data-if="amount"]').focus(); return; }
+        var b = { date: val("date"), vendor: val("vendor"), ref: val("ref"), amount: amt };
+        invSave(inv._id, { bill: b });
+        if (fileInvoice(inv, jobId, b)) renderList();
+      });
+      el.querySelector("[data-invdismiss]").addEventListener("click", function (e) {
+        var btn = e.currentTarget;
+        if (!btn.classList.contains("armed")) { btn.classList.add("armed"); btn.textContent = "Remove from this list?"; setTimeout(function () { if (btn.isConnected) { btn.classList.remove("armed"); btn.textContent = "Not a job bill"; } }, 4000); return; }
+        invSave(inv._id, { status: "dismissed", dismissedAt: new Date().toISOString(), dismissedBy: myName || "" });
+        renderList();
+      });
+    });
+  }
 
   /* ---------- insights ---------- */
   var insRun = new Map(); // jobId -> {ctl}
@@ -3915,6 +4029,13 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
       estLoaded = true;
       if (view.name === "est" && (ev.sub === "list" || !estimates.has(ev.id))) renderEst();
     }, function () {});
+    db.collection("invoices").onSnapshot(function (snap) {
+      var next = new Map();
+      snap.docs.forEach(function (d) { var body = clone(d.data() || {}); body._id = d.id; next.set(d.id, body); });
+      invoices = next;
+      autoFileInvoices();
+      if (view.name === "list") renderList();
+    }, function () {});
     db.collection("jobs").onSnapshot(function (snap) {
       var seen = new Set();
       snap.docs.forEach(function (d) {
@@ -3927,6 +4048,7 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
       });
       jobs.forEach(function (_, id) { if (!seen.has(id) && !pending(id) && !snap.metadata.fromCache) jobs.delete(id); });
       loaded = true;
+      autoFileInvoices();
       if (view.name === "job") {
         if (!jobs.has(view.jobId)) { go({ name: "list" }); return; }
         if (!pending(view.jobId)) { fillInputs(); updateOutputs(); }
@@ -3949,6 +4071,7 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
     Promise.resolve(c.use("downloads")).then(function (d) { downloadsNs = d || null; if (downloadsNs && view.name === "job") renderJob(); }).catch(function () {});
     Promise.all([c.use("db"), c.use("user").catch(function () { return null; })]).then(function (res) {
       var dbNs = res[0], user = res[1];
+      if (user && typeof user.me === "function") Promise.resolve(user.me()).then(function (m) { if (m) myName = m.name || m.email || ""; }).catch(function () {});
       if (!dbNs) { startLocal(); return; }
       if (user && typeof user.can === "function") {
         Promise.resolve(user.can("data.write")).then(function (ok) {
