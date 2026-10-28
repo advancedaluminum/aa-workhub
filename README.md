@@ -92,6 +92,21 @@ In Supabase, open **Edge Functions → Deploy a new function → Via editor**.
 
 (If you use the Supabase command line instead: `supabase functions deploy claude`.)
 
+### 4b. Add the team-admin function (lets admins set passwords)
+
+This lets an admin add a teammate with a password, or reset someone's password, from the
+**Team** panel without any email being sent.
+
+1. **Edge Functions → Deploy a new function → Via editor**, name it exactly `team-admin`,
+   paste the whole of `supabase/functions/team-admin/index.ts`, and **Deploy**.
+2. In **Project Settings → API Keys**, find your **secret** key (starts with `sb_secret_`;
+   create one if there isn't one). Copy it.
+3. In **Edge Functions → Secrets**, add `AA_SECRET_KEY` = that secret key.
+   (`AA_PUBLIC_KEY` and `ALLOWED_ORIGIN` from step 4 are shared by both functions.)
+
+The secret key can do anything in your database, so it lives only in Supabase's secrets:
+never in `config.js`, the `public` folder, GitHub, an email, or a chat.
+
 ### 5. Connect the app to the database and publish it
 
 1. In Supabase, copy the **Project URL** (**Project Settings → Data API**) and the
@@ -132,8 +147,14 @@ ask Claude for a fresh one.
 ### 8. Invite the team
 
 In the hub, click **Team**, add each person's name and email, choose **editor** or
-**viewer**, and send them to **workhub.advancedaluminum.com**. The first time, they click
-**Email me a sign-in code**, enter the code, and choose a password. After that they sign in
+**viewer**, and send them to **workhub.advancedaluminum.com**.
+
+- **With a password:** type one in the **Password** box when you add them. They can sign in
+  straight away with their email and that password; the app then invites them to choose their
+  own. Tell them the password in person or by phone, not by email or text.
+- **Without a password:** leave it blank. The first time, they click
+  **Email me a sign-in code**, enter the code, and choose a password.
+- **Forgot their password:** click **Set password** next to their name in **Team**. After that they sign in
 with email and password. No Claude account is needed.
 
 Anyone can change their password from **Password** at the top of the app.

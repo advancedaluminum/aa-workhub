@@ -144,7 +144,7 @@
     var a = $("#" + prefix + "New").value, b = $("#" + prefix + "Again").value;
     if (a.length < 8) { msgEl.textContent = "Use at least 8 characters."; return Promise.resolve(false); }
     if (a !== b) { msgEl.textContent = "The two passwords don't match."; return Promise.resolve(false); }
-    return sb.auth.updateUser({ password: a, data: { has_password: true } }).then(function (res) {
+    return sb.auth.updateUser({ password: a, data: { has_password: true, password_set_by_admin: false } }).then(function (res) {
       if (res.error) {
         msgEl.textContent = /same|different/i.test(res.error.message) ? "That's your current password. Choose a new one." : "Couldn't save the password: " + res.error.message;
         return false;
@@ -152,9 +152,9 @@
       return true;
     });
   }
-  function setPasswordForm(onDone) {
+  function setPasswordForm(onDone, setByAdmin) {
     showGate(
-      '<p class="si-text">You\'re signed in. Choose a password so next time you can sign in without waiting for an email.</p>' +
+      '<p class="si-text">' + (setByAdmin ? "You\'re signed in with the password your admin set. Choose your own password now, or skip and keep using that one." : "You\'re signed in. Choose a password so next time you can sign in without waiting for an email.") + '</p>' +
       '<form class="si-form" id="siSetPw" novalidate>' + passwordFields("sp") +
       '<button class="btn primary" type="submit">Save password and continue</button></form>' +
       '<p class="si-msg" id="siMsg" role="status"></p>' +
@@ -196,7 +196,8 @@
       me = { id: session.user.id, email: email, name: res.data.name || "", role: res.data.role };
       var asked = false; try { asked = sessionStorage.getItem("aa-set-password") === "1"; } catch (e) {}
       var hasPw = !!(session.user.user_metadata && session.user.user_metadata.has_password);
-      if (asked || !hasPw) setPasswordForm(enterApp); else enterApp();
+      var byAdmin = !!(session.user.user_metadata && session.user.user_metadata.password_set_by_admin);
+      if (asked || !hasPw) setPasswordForm(enterApp, byAdmin && !asked); else enterApp();
     });
   }
   sb.auth.onAuthStateChange(function (event, session) {
@@ -234,6 +235,24 @@
     });
   }
 
+  function teamAdmin(payload) {
+    return sb.auth.getSession().then(function (s) {
+      var token = s.data && s.data.session && s.data.session.access_token;
+      if (!token) throw new Error("Your sign-in expired. Reload the page and sign in again.");
+      return fetch(cfg.supabaseUrl + "/functions/v1/team-admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + token, apikey: cfg.supabaseAnonKey },
+        body: JSON.stringify(payload)
+      });
+    }).then(function (res) {
+      return res.json().catch(function () { return {}; }).then(function (b) {
+        if (res.status === 404 && !b.error) throw new Error("The team-admin function isn't set up yet. See the setup guide.");
+        if (!res.ok) throw new Error(b.error || "That didn't work (" + res.status + ").");
+        return b;
+      });
+    });
+  }
+
   function toggleTeam() {
     var p = $("#teamPanel");
     if (!p.hidden && p.dataset.mode === "team") { p.hidden = true; return; }
@@ -251,14 +270,18 @@
           return "<tr><td>" + esc(m.name || "—") + "</td><td>" + esc(m.email) + "</td><td>" +
             (self ? esc(m.role) + " (you)" : '<div class="input" style="max-width:130px"><select data-role="' + esc(m.email) + '">' +
               ["editor", "viewer", "admin"].map(function (r) { return '<option value="' + r + '"' + (r === m.role ? " selected" : "") + ">" + r + "</option>"; }).join("") + "</select></div>") +
-            '</td><td class="rowacts">' + (self ? "" : '<button class="xbtn" type="button" data-remove="' + esc(m.email) + '">Remove</button>') + "</td></tr>";
+            '</td><td class="rowacts"><button class="xbtn edit" type="button" data-setpw="' + esc(m.email) + '">Set password</button>' + (self ? "" : '<button class="xbtn" type="button" data-remove="' + esc(m.email) + '">Remove</button>') + "</td></tr>" +
+            '<tr class="setpw-row" data-setpw-row="' + esc(m.email) + '" hidden><td colspan="4"><form class="setpw-form" data-setpw-form="' + esc(m.email) + '" novalidate>' +
+              '<div class="field"><label>New password for ' + esc(m.name || m.email) + '</label><div class="input"><input class="text" type="text" autocomplete="off" minlength="8" placeholder="At least 8 characters" data-setpw-input></div></div>' +
+              '<button class="btn primary sm" type="submit">Save password</button><button class="btn ghost sm" type="button" data-setpw-cancel>Cancel</button></form></td></tr>';
         }).join("") + "</tbody></table></div>" +
         '<form class="tm-add" id="tmAdd" novalidate>' +
           '<div class="field"><label for="tmName">Name</label><div class="input"><input class="text" id="tmName" autocomplete="off" placeholder="Jane Smith"></div></div>' +
           '<div class="field"><label for="tmEmail">Email</label><div class="input"><input class="text" id="tmEmail" type="email" autocomplete="off" placeholder="jane@advancedaluminum.com"></div></div>' +
           '<div class="field"><label for="tmRole">Access</label><div class="input"><select id="tmRole"><option value="editor">editor</option><option value="viewer">viewer</option><option value="admin">admin</option></select></div></div>' +
+          '<div class="field"><label for="tmPw">Password (optional)</label><div class="input"><input class="text" id="tmPw" type="text" autocomplete="off" placeholder="Leave blank to email a code"></div></div>' +
           '<button class="btn primary" type="submit">Add to team</button></form>' +
-        '<p class="help" id="tmMsg" role="status">' + esc(msg || "Once added, send them to this site. The first time, they click \u201cEmail me a sign-in code\u201d, then choose a password.") + "</p>" +
+        '<p class="help" id="tmMsg" role="status">' + esc(msg || "Set a password and they can sign in right away with their email and that password. Leave it blank and, the first time, they click \u201cEmail me a sign-in code\u201d instead.") + "</p>" +
         '<div class="tm-import"><h3>Move data from the Claude app</h3>' +
           '<p class="sub">Choose the backup file (<code>aa-job-costing-backup-….json</code>) and all the bill PDFs from the <code>bill-files</code> folder together. Jobs that are already here are updated, not duplicated, so it\'s safe to run again.</p>' +
           '<input type="file" id="tmImportFiles" multiple accept=".json,application/json,application/pdf,image/*">' +
@@ -270,8 +293,35 @@
         e.preventDefault();
         var email = $("#tmEmail").value.trim().toLowerCase();
         if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { $("#tmMsg").textContent = "Enter a valid email address."; return; }
-        sb.from("members").upsert({ email: email, name: $("#tmName").value.trim() || null, role: $("#tmRole").value }).then(function (r) {
+        var name = $("#tmName").value.trim(), role = $("#tmRole").value, pw = $("#tmPw").value;
+        if (pw) {
+          if (pw.length < 8) { $("#tmMsg").textContent = "Use a password of at least 8 characters."; return; }
+          $("#tmMsg").textContent = "Adding " + email + "…";
+          teamAdmin({ action: "add", email: email, name: name, role: role, password: pw }).then(function () {
+            loadTeam("Added " + email + ". They can sign in at " + location.host + " with that email and the password you set. Tell them the password in person or by phone, not by email.");
+          }).catch(function (err) { $("#tmMsg").textContent = "Couldn't add them: " + err.message; });
+          return;
+        }
+        sb.from("members").upsert({ email: email, name: name || null, role: role }).then(function (r) {
           loadTeam(r.error ? "Couldn't add them: " + r.error.message : "Added " + email + ". Send them to " + location.host + ". The first time, they click \u201cEmail me a sign-in code\u201d and then choose a password.");
+        });
+      });
+      p.querySelectorAll("[data-setpw]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          var row = p.querySelector('[data-setpw-row="' + b.dataset.setpw + '"]'); row.hidden = !row.hidden;
+          if (!row.hidden) row.querySelector("[data-setpw-input]").focus();
+        });
+      });
+      p.querySelectorAll("[data-setpw-cancel]").forEach(function (b) { b.addEventListener("click", function () { b.closest("tr").hidden = true; }); });
+      p.querySelectorAll("[data-setpw-form]").forEach(function (f) {
+        f.addEventListener("submit", function (e) {
+          e.preventDefault();
+          var email = f.dataset.setpwForm, pw = f.querySelector("[data-setpw-input]").value;
+          if (pw.length < 8) { $("#tmMsg").textContent = "Use a password of at least 8 characters."; return; }
+          var btn = f.querySelector("button[type=submit]"); btn.disabled = true;
+          teamAdmin({ action: "set_password", email: email, password: pw }).then(function () {
+            loadTeam("Password set for " + email + ". They can sign in with it now; the app will invite them to choose their own.");
+          }).catch(function (err) { btn.disabled = false; $("#tmMsg").textContent = "Couldn't set the password: " + err.message; });
         });
       });
       p.querySelectorAll("[data-role]").forEach(function (s) {
