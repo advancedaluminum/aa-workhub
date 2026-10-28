@@ -498,6 +498,125 @@ body.signed-out .wrap { display: none; }
 .tm-import { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
 .tm-import input[type=file] { font-size: 13px; max-width: 100%; }
 code { font-family: var(--font-data); font-size: .9em; background: var(--surface-2); padding: 0 4px; border-radius: 3px; }
+
+/* Field estimator: tablet-first question flow. Big tap targets, one question block per row, a sticky footer that always shows the running Signature price. */
+.est-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 16px; margin-bottom: 16px; }
+.est-head > div:first-child { min-width: 0; flex: 1 1 320px; }
+.est-head-acts { display: flex; flex-wrap: wrap; gap: 8px; }
+.miss-pill { display: inline-flex; align-items: center; font-size: 11.5px; font-weight: 700; letter-spacing: .02em; padding: 1px 8px; border-radius: 999px; background: var(--warn-soft); color: var(--warn); white-space: nowrap; vertical-align: 1px; }
+.est-row { grid-template-columns: minmax(0, 2.2fr) 150px minmax(0,1fr) minmax(0,.8fr) minmax(0,1fr); }
+
+.wz { display: flex; flex-direction: column; gap: 14px; }
+.wz-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.wz-top .back { margin: 0 0 0 -8px; }
+.wz-title { font-family: var(--font-display); font-weight: 700; font-size: clamp(24px, 3.6vw, 32px); text-transform: uppercase; letter-spacing: .01em; line-height: 1.05; margin: 0; text-wrap: balance; }
+.wz-steps { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 2px; border-bottom: 1px solid var(--line); scrollbar-width: thin; }
+.wz-steps button { display: inline-flex; align-items: center; gap: 7px; border: 0; background: transparent; padding: 10px 10px 9px; font-weight: 600; font-size: 14px; color: var(--ink-2); cursor: pointer; white-space: nowrap; border-bottom: 3px solid transparent; margin-bottom: -1px; min-height: 44px; }
+.wz-steps button b { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--surface-2); font-size: 12px; font-family: var(--font-data); }
+.wz-steps button.done b { background: var(--good-soft); color: var(--good); }
+.wz-steps button[aria-current="step"] { color: var(--ink); border-bottom-color: var(--bronze); }
+.wz-steps button[aria-current="step"] b { background: var(--bronze); color: var(--bronze-ink); }
+.wz-body { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.step-h { font-family: var(--font-display); font-weight: 700; font-size: 1.6rem; text-transform: uppercase; letter-spacing: .02em; margin: 4px 0 -8px; }
+.wz-body > .sub { margin: 0; }
+.q { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.q-label { font-weight: 700; font-size: 16px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: inline-flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 1px; min-height: 48px; padding: 10px 18px; border: 1.5px solid var(--line); border-radius: var(--r); background: var(--surface); font-weight: 600; font-size: 15.5px; cursor: pointer; text-align: left; }
+.chip small { font-weight: 400; font-size: 12.5px; color: var(--ink-2); }
+.chip:hover { border-color: var(--ink-2); }
+.chip[aria-pressed="true"] { border-color: var(--bronze); background: var(--bronze-soft); box-shadow: inset 0 0 0 1px var(--bronze); }
+.wz .input input, .wz .input select, .pb .input input { font-size: 16px; padding: 11px 10px; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 14px; }
+.grid2 .span2 { grid-column: 1 / -1; }
+.ecard { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.ecard-h { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.ecard-h b { font-family: var(--font-display); font-size: 1.2rem; text-transform: uppercase; letter-spacing: .04em; }
+.ecard-h .money { color: var(--ink-2); font-size: 13.5px; margin-right: auto; }
+.wall-name { font-family: var(--font-display); font-weight: 700; font-size: 1.2rem; text-transform: uppercase; letter-spacing: .04em; border: 1px solid transparent; background: transparent; border-radius: 4px; padding: 2px 6px; margin-left: -7px; width: 12em; max-width: 100%; }
+.wall-name:hover { border-color: var(--line); }
+.wall-name:focus { border-color: var(--bronze); outline: none; background: var(--bg); }
+.panel-note { margin: -6px 0 0; color: var(--ink); font-weight: 600; }
+.adder summary { cursor: pointer; color: var(--ink-2); font-weight: 600; font-size: 14px; padding: 4px 0; }
+.adder[open] summary { margin-bottom: 10px; }
+.add-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.add-row .btn { min-height: 46px; }
+.door-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: 18px; }
+.stepper { display: inline-flex; align-items: stretch; gap: 0; }
+.stepper .btn { min-width: 52px; min-height: 50px; font-size: 22px; padding: 0; }
+.stepper .btn:first-child { border-radius: 4px 0 0 4px; }
+.stepper .btn:last-child { border-radius: 0 4px 4px 0; }
+.stepper input { width: 64px; text-align: center; font-family: var(--font-data); font-size: 18px; border: 1px solid var(--line); border-left: 0; border-right: 0; background: var(--bg); }
+.labor-box { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: start; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; }
+.labor-big { display: flex; flex-direction: column; gap: 2px; }
+.labor-big .v { font-family: var(--font-display); font-weight: 700; font-size: 2.4rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.mini-h { font-family: var(--font-display); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; font-size: 1rem; margin: 6px 0 6px; }
+.extras { list-style: none; margin: 0; padding: 0; }
+.extras li { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14.5px; }
+.flag { margin: 6px 0 0; padding: 8px 12px; border-radius: var(--r); background: var(--warn-soft); font-size: 13.5px; max-width: 75ch; }
+
+.wz-foot { position: sticky; bottom: 0; z-index: 15; display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 10px 12px; padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)); box-shadow: 0 -6px 18px rgba(0,0,0,.08); margin-top: 6px; }
+.wz-foot .btn { min-height: 48px; padding-inline: 18px; }
+.wz-total { flex: 1; display: flex; flex-direction: column; align-items: center; min-width: 0; text-align: center; }
+.wz-total .lbl { font-size: 10.5px; }
+.wz-total .money { font-family: var(--font-display); font-weight: 700; font-size: 1.7rem; line-height: 1.1; }
+.wz-total .help { color: var(--warn); font-weight: 600; font-size: 12px; }
+
+.rv-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.rv td.muted { color: var(--ink-2); font-size: 13px; }
+.rv tr.rv-sec td { font-family: var(--font-display); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; font-size: 14px; padding-top: 14px; border-bottom-color: var(--ink-2); }
+.rv tr.rv-sec td:last-child { font-family: var(--font-data); font-size: 13px; color: var(--ink-2); }
+.tier-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--r); background: var(--bg); margin-bottom: 8px; }
+.tier-row b { display: block; }
+.tier-row small { color: var(--ink-2); font-size: 12.5px; }
+.tier-row .money { font-family: var(--font-display); font-weight: 700; font-size: 1.5rem; }
+.tier-row.anchor { background: var(--bronze-soft); box-shadow: inset 0 0 0 1.5px var(--bronze); }
+.btn.wide { width: 100%; min-height: 48px; margin-top: 6px; }
+
+/* customer presentation */
+body.presenting .top, body.presenting .mainnav, body.presenting .foot, body.presenting #banner, body.presenting #ratesPanel { display: none; }
+.pres { display: flex; flex-direction: column; gap: 22px; padding-top: 18px; }
+.pres-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; border-bottom: 3px solid var(--bronze); padding-bottom: 12px; }
+.pres-top img { height: 56px; width: auto; }
+.pres-intro h2 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 5vw, 46px); text-transform: uppercase; line-height: 1; margin: 4px 0 8px; text-wrap: balance; }
+.pres-intro p { margin: 0; color: var(--ink-2); font-size: 16px; max-width: 70ch; }
+.tgrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
+.tcard { position: relative; display: flex; flex-direction: column; gap: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 22px 20px 20px; min-width: 0; }
+.tcard.popular { border: 2px solid var(--bronze); box-shadow: 0 10px 30px rgba(221, 36, 32, .12); }
+.tcard.chosen { outline: 3px solid var(--good); outline-offset: 2px; }
+.ribbon { position: absolute; top: -13px; left: 50%; transform: translateX(-50%); background: var(--bronze); color: var(--bronze-ink); font-family: var(--font-display); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; font-size: 13px; padding: 3px 14px; border-radius: 999px; white-space: nowrap; }
+.tcard h3 { font-family: var(--font-display); font-weight: 700; font-size: 1.9rem; text-transform: uppercase; margin: 0; line-height: 1; }
+.tcard h3 span { font-weight: 500; color: var(--ink-2); font-size: 1.1rem; margin-left: 6px; letter-spacing: .05em; }
+.ttag { margin: 0; color: var(--ink-2); font-size: 14.5px; }
+.tprice { font-family: var(--font-display); font-weight: 700; font-size: 2.6rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.tcard.popular .tprice { color: var(--bronze); }
+.tcard ul { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.tcard li { position: relative; padding-left: 22px; font-size: 14.5px; line-height: 1.4; }
+.tcard li::before { content: ""; position: absolute; left: 2px; top: 6px; width: 10px; height: 6px; border-left: 2px solid var(--good); border-bottom: 2px solid var(--good); transform: rotate(-45deg); }
+.pres-foot { margin: 0; color: var(--ink-2); font-size: 13px; text-align: center; }
+
+/* price book */
+.pb td { vertical-align: middle; }
+.pb .input { min-width: 96px; }
+.pb .why { display: block; font-size: 12px; color: var(--ink-2); }
+.pb tr.pb-miss td:first-child { color: var(--warn); }
+.lt-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 16px; margin: 12px 0; }
+.tf-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 14px; }
+textarea.tf { min-height: 200px; font-size: 15px; }
+
+@media (max-width: 860px) {
+  .rv-grid, .labor-box { grid-template-columns: minmax(0, 1fr); }
+  .tgrid { grid-template-columns: minmax(0, 1fr); max-width: 520px; margin: 14px auto 0; width: 100%; gap: 26px; }
+  .est-row { grid-template-columns: minmax(0,1fr) auto; }
+}
+@media (max-width: 520px) {
+  .wz-foot { gap: 8px; padding-inline: 8px; }
+  .wz-foot .btn { padding-inline: 12px; font-size: 13.5px; }
+  .wz-total .money { font-size: 1.35rem; }
+  .chip { padding: 10px 14px; }
+}
+
+@media (max-width: 520px) { .nx-name { display: none; } }
 </style>
 </head>
 <body class="signed-out">
@@ -523,6 +642,7 @@ code { font-family: var(--font-data); font-size: .9em; background: var(--surface
   <nav class="mainnav" aria-label="Sections">
     <button type="button" data-nav="dash" aria-current="page">Dashboard</button>
     <button type="button" data-nav="list">Jobs</button>
+    <button type="button" data-nav="est">Field estimator</button>
   </nav>
   <div id="banner"></div>
   <section class="panel rates-panel" id="ratesPanel" hidden></section>
@@ -627,6 +747,7 @@ code { font-family: var(--font-data); font-size: .9em; background: var(--surface
     if (saveError) { el.textContent = "Last change didn't save"; el.className = "save-state bad"; return; }
     var busy = false;
     saves.forEach(function (s) { if (s.timer || s.writing || s.dirty) busy = true; });
+    estSaves.forEach(function (s) { if (s.timer || s.writing || s.dirty) busy = true; });
     el.textContent = busy ? "Saving…" : "All changes saved";
     el.className = "save-state";
   }
@@ -733,8 +854,10 @@ code { font-family: var(--font-data); font-size: .9em; background: var(--surface
     if (view.name === "job" && jobs.has(view.jobId)) renderJob();
     else if (view.name === "import") renderImport();
     else if (view.name === "dash") renderDash();
+    else if (view.name === "est") renderEst();
     else { view.name = "list"; renderList(); }
-    var section = view.name === "dash" ? "dash" : "list";
+    if (view.name !== "est") document.body.classList.remove("presenting");
+    var section = view.name === "dash" ? "dash" : view.name === "est" ? "est" : "list";
     document.querySelectorAll("[data-nav]").forEach(function (b) {
       if (b.dataset.nav === section) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
     });
@@ -2106,7 +2229,7 @@ code { font-family: var(--font-data); font-size: .9em; background: var(--surface
 
   /* ---------- dashboard ---------- */
   document.querySelectorAll("[data-nav]").forEach(function (b) {
-    b.addEventListener("click", function () { imp = null; go({ name: b.dataset.nav }); });
+    b.addEventListener("click", function () { imp = null; if (b.dataset.nav === "est") ev = { sub: "list", id: null, step: 0 }; go({ name: b.dataset.nav }); });
   });
   $("#homeLink").addEventListener("click", function (e) { e.preventDefault(); imp = null; closeRates(); go({ name: "dash" }); });
   var PERIODS = [["ytd", "Year to date"], ["lastyear", "Last year"], ["l12", "Last 12 months"], ["all", "All time"]];
@@ -2802,13 +2925,782 @@ code { font-family: var(--font-data); font-size: .9em; background: var(--surface
     ];
   }
 
+  /* ---------- field estimator: price book + pricing engine ---------- */
+  var EST_TYPES = { screen: "Screen enclosure", patio: "Patio enclosure", sunroom: "Sunroom" };
+  var EST_JOBTYPE = { screen: "pool", patio: "patio", sunroom: "sunroom" };
+  var SCREEN_TYPES = { "1814": "18/14 standard", "2020": "20/20 No-See-Um", pet: "Pet screen" };
+  var ROOF_STYLES = { flat: "Flat", mansard: "Mansard", gable: "Gable", hip: "Hip", dome: "Dome" };
+  var PB_GROUPS = ["Roof", "Walls & screen", "Windows", "Kick plates", "Doors", "Gutters & color", "Site & fees", "Labor"];
+  function pbItem(g, label, unit, cost, price, note) { return { g: g, label: label, unit: unit, cost: cost, price: price, note: note || "" }; }
+  function pbDefaults() {
+    return {
+      v: 1, margin: 0.20, spanLimit: 13, laborMode: "whole", measurePct: 0.05, includeDesignMeasure: false, militaryPct: 0.05,
+      items: {
+        roofScreen: pbItem("Roof", "Screen roof with 18/14 screen", "sq ft", 8.11, 10.1375, "JobTread: Roof Materials with 18/14 Screen"),
+        roofUp2020: pbItem("Roof", "Roof screen upgrade to 20/20", "sq ft", 0.25, 0.2925, "Difference between 20/20 and 18/14 rescreen materials"),
+        roofUpPet: pbItem("Roof", "Roof screen upgrade to pet screen", "sq ft", 1.17, 1.4425, "Difference between pet screen and 18/14 rescreen materials"),
+        styleMansard: pbItem("Roof", "Mansard roof adder", "sq ft", null, null),
+        styleGable: pbItem("Roof", "Gable roof adder", "sq ft", null, null),
+        styleHip: pbItem("Roof", "Hip roof adder", "sq ft", null, null),
+        styleDome: pbItem("Roof", "Dome roof adder", "sq ft", null, null),
+        panel024: pbItem("Roof", "Structall .024 panel (span 13' or less)", "sq ft", 16.6, 20.75, "Includes panels, receiving channel, fascia, gutter, downspouts, elbows, bird block flashing, fasteners, seam tape and caulking"),
+        panel024fan: pbItem("Roof", "Structall .024 panel with fan beam", "sq ft", 17.5, 21.875),
+        panel030: pbItem("Roof", "Structall .030 panel (span over 13')", "sq ft", 20.24, 25.3),
+        panel030fan: pbItem("Roof", "Structall .030 panel with fan beam", "sq ft", 20.24, 25.3, "Same price as plain .030 in JobTread. Check this."),
+        delivery: pbItem("Roof", "Structall delivery charge", "each", 50, 62.5, "Added once when the job has a composite roof"),
+        mountWall: pbItem("Roof", "Wall mount adder", "lf", null, null, "Per linear foot along the house"),
+        mountFascia: pbItem("Roof", "Fascia mount adder", "lf", null, null, "Per linear foot along the house"),
+        wall1814: pbItem("Walls & screen", "Screen wall with 18/14 screen", "sq ft", 5.1, 6.375),
+        wall2020: pbItem("Walls & screen", "Screen wall with 20/20 screen", "sq ft", 5.5, 6.875),
+        petUp: pbItem("Walls & screen", "Pet screen upgrade over 18/14", "sq ft", 1.17, 1.4425, "Difference between pet screen and 18/14 rescreen materials"),
+        winFrame: pbItem("Windows", "Window wall framing", "sq ft", null, null, "Framing for glass and acrylic walls, per sq ft of wall"),
+        winAcrylic: pbItem("Windows", "Acrylic windows (CWS)", "sq ft", 27.57, 34.4625),
+        winImpact: pbItem("Windows", "Impact glass windows (PGT Sparta)", "sq ft", 36.8, 46),
+        winNonImpact: pbItem("Windows", "Non-impact glass windows", "sq ft", null, null),
+        tint: pbItem("Windows", "Tint upgrade", "sq ft", null, null),
+        lowE: pbItem("Windows", "Low-E upgrade", "sq ft", null, null),
+        kick16std: pbItem("Kick plates", "16\" kick plate, standard", "lf", 11.17, 13.9625, "Screen enclosures"),
+        kick20std: pbItem("Kick plates", "20\" kick plate, standard", "lf", null, null, "Not in the JobTread catalog"),
+        kick24std: pbItem("Kick plates", "24\" kick plate, standard", "lf", 14.57, 18.2125),
+        kick16ins: pbItem("Kick plates", "16\" insulated kick plate", "lf", 15.81, 19.7625, "Sunrooms"),
+        kick20ins: pbItem("Kick plates", "20\" insulated kick plate", "lf", 15.81, 19.7625),
+        kick24ins: pbItem("Kick plates", "24\" insulated kick plate", "lf", 22.6, 28.25),
+        screenDoor: pbItem("Doors", "Standard screen door with kick plate and upgraded hardware", "each", 115.5, 144.375),
+        doorKit: pbItem("Doors", "Door kit (plunger and latch)", "each", 38.81, 48.5125, "Added with every screen door"),
+        primeDoor: pbItem("Doors", "Sunroom prime door", "each", 930.73, 1163.4125),
+        slidingDoor: pbItem("Doors", "Sliding glass door", "each", null, null),
+        frenchDoor: pbItem("Doors", "French door", "each", null, null),
+        gutter5: pbItem("Gutters & color", "5\" gutter", "lf", 10.56, 13.2),
+        gutter7: pbItem("Gutters & color", "7\" gutter", "lf", 16.7, 20.875),
+        bronze: pbItem("Gutters & color", "Bronze frame upcharge", "sq ft", 0, 0, "Proposal 1365-1 charged $0 for bronze"),
+        demoHour: pbItem("Site & fees", "Tear-out (demo) hour", "hr", null, 427.64),
+        permit: pbItem("Site & fees", "Engineering & building permit", "each", null, 900),
+        designFee: pbItem("Site & fees", "Design fee", "each", null, 200, "The measure fee (5% of the price) is added with it"),
+        laborRate: pbItem("Labor", "Labor team rate (Zach & Justin)", "hr", null, 427.96)
+      },
+      labor: {
+        screen: [[300, 0.20], [600, 0.12], [1200, 0.061], [null, 0.045]],
+        patio: [[300, 0.20], [600, 0.12], [1200, 0.061], [null, 0.045]],
+        sunroom: [[150, 0.20], [300, 0.13], [null, 0.11]]
+      },
+      laborFlags: { patio: true },
+      extraHrs: { kickLf: null, transomLf: null, windowSqft: null, compositeSqft: null },
+      tiers: {
+        essentialPct: -0.07, legacyPct: 0.31,
+        essential: ["Structural aluminum frame system", "18/14 standard screen", "Standard screen doors & door hardware", "Engineering & building permit", "10-year workmanship warranty"],
+        signature: ["Structural aluminum frame with full lap beam connections", "20x20 Phifer \"No See-Um\" screen", "Standard screen doors with upgraded hardware", "Assembled & installed with stainless steel fasteners", "Wind brace package", "Hurricane cables", "Engineering & building permit", "10-year workmanship warranty"],
+        legacy: ["Everything in the Signature Series", "[Add Legacy upgrade]", "[Add Legacy upgrade]"],
+        placeholder: true
+      }
+    };
+  }
+  var pricebook = pbDefaults();
+  function mergePricebook(saved) {
+    var d = pbDefaults();
+    if (!saved || typeof saved !== "object") return d;
+    ["margin", "spanLimit", "laborMode", "measurePct", "includeDesignMeasure", "militaryPct"].forEach(function (k) { if (saved[k] !== undefined) d[k] = saved[k]; });
+    Object.keys(saved.items || {}).forEach(function (k) {
+      if (d.items[k]) { var s = saved.items[k]; d.items[k].cost = s.cost === undefined ? d.items[k].cost : s.cost; d.items[k].price = s.price === undefined ? d.items[k].price : s.price; }
+    });
+    if (saved.labor) Object.keys(d.labor).forEach(function (k) { if (Array.isArray(saved.labor[k]) && saved.labor[k].length) d.labor[k] = saved.labor[k]; });
+    if (saved.laborFlags) d.laborFlags = saved.laborFlags;
+    if (saved.extraHrs) Object.keys(d.extraHrs).forEach(function (k) { if (saved.extraHrs[k] !== undefined) d.extraHrs[k] = saved.extraHrs[k]; });
+    if (saved.tiers) Object.keys(saved.tiers).forEach(function (k) { d.tiers[k] = saved.tiers[k]; });
+    return d;
+  }
+  function pbMissingCount() {
+    var n = 0;
+    Object.keys(pricebook.items).forEach(function (k) { if (pricebook.items[k].price === null || pricebook.items[k].price === "") n++; });
+    return n;
+  }
+
+  // labor hours from the square-footage factor table
+  function laborFromTable(table, sqft, mode) {
+    if (!(sqft > 0) || !table || !table.length) return { hrs: 0, note: "" };
+    if (mode === "bracket") {
+      var left = sqft, prev = 0, hrsB = 0, parts = [];
+      for (var i = 0; i < table.length && left > 0; i++) {
+        var cap = table[i][0] === null || table[i][0] === "" ? Infinity : num(table[i][0]);
+        var span = Math.min(left, cap - prev);
+        if (span > 0) { hrsB += span * num(table[i][1]); parts.push(Math.round(span) + " × " + num(table[i][1])); left -= span; }
+        prev = cap;
+      }
+      return { hrs: hrsB, note: parts.join(" + ") + " (bracketed)" };
+    }
+    for (var k = 0; k < table.length; k++) {
+      var c = table[k][0] === null || table[k][0] === "" ? Infinity : num(table[k][0]);
+      if (sqft <= c) return { hrs: sqft * num(table[k][1]), factor: num(table[k][1]), note: Math.round(sqft).toLocaleString("en-US") + " sq ft × " + num(table[k][1]) };
+    }
+    return { hrs: 0, note: "" };
+  }
+
+  function calcEst(E) {
+    var P = pricebook.items, lines = [], missing = [], outs = {};
+    var marginDiv = 1 - num(pricebook.margin || 0.2);
+    function add(sec, label, qty, key, unitLabel, kind) {
+      var item = P[key]; qty = num(qty);
+      if (!item || !(qty > 0)) return null;
+      var miss = item.price === null || item.price === "";
+      var up = miss ? 0 : num(item.price), uc = item.cost === null || item.cost === "" ? null : num(item.cost);
+      var ln = { sec: sec, label: label, qty: qty, unit: unitLabel || item.unit, unitPrice: up, unitCost: uc, price: qty * up, cost: uc === null ? null : qty * uc, kind: kind || "mat", missing: miss, item: item.label };
+      if (miss && missing.indexOf(item.label) < 0) missing.push(item.label);
+      lines.push(ln);
+      return ln;
+    }
+    function addAmt(sec, label, price, cost, kind) {
+      if (!(num(price) > 0)) return;
+      lines.push({ sec: sec, label: label, qty: 1, unit: "", unitPrice: num(price), unitCost: cost, price: num(price), cost: cost, kind: kind || "mat" });
+    }
+    var screenT = E.screen || "1814";
+    // roof
+    var footprint = 0, compositeSqft = 0, anyComposite = false;
+    (E.roofs || []).forEach(function (r, i) {
+      var w = num(r.width), p = num(r.proj), sq = w * p, nm = "Roof " + (i + 1);
+      footprint += sq;
+      var before = lines.length;
+      if (r.type === "composite") {
+        anyComposite = true; compositeSqft += sq;
+        var heavy = p > num(pricebook.spanLimit || 13);
+        var key = (heavy ? "panel030" : "panel024") + (r.fan ? "fan" : "");
+        add(nm, (w || "?") + "' × " + (p || "?") + "' composite roof, " + (heavy ? ".030" : ".024") + " panel" + (r.fan ? " with fan beam" : ""), sq, key);
+        add(nm, (r.mount === "fascia" ? "Fascia" : "Wall") + " mount", w, r.mount === "fascia" ? "mountFascia" : "mountWall");
+        outs["roofpanel-" + r.id] = sq ? "Span " + p + "' uses the " + (heavy ? ".030 upgraded panel (over " + pricebook.spanLimit + "')" : ".024 panel (" + pricebook.spanLimit + "' or less)") : "Enter the projection to pick the panel";
+      } else {
+        add(nm, (w || "?") + "' × " + (p || "?") + "' screen roof", sq, "roofScreen");
+        if (r.style && r.style !== "flat") add(nm, ROOF_STYLES[r.style] + " roof", sq, "style" + r.style.charAt(0).toUpperCase() + r.style.slice(1));
+        if (E.roofUpgrade && screenT !== "1814") add(nm, "Roof screen upgrade to " + SCREEN_TYPES[screenT], sq, screenT === "pet" ? "roofUpPet" : "roofUp2020");
+      }
+      if (num(r.adder) > 0) addAmt(nm, r.adderNote ? "Extra: " + r.adderNote : "Extra for unusual conditions", r.adder, num(r.adder) * marginDiv);
+      var secTotal = lines.slice(before).reduce(function (s, l) { return s + l.price; }, 0);
+      outs["roof-" + r.id] = (sq ? Math.round(sq).toLocaleString("en-US") + " sq ft" : "No size yet") + " · " + money(secTotal);
+    });
+    if (anyComposite) add("Roof", "Structall delivery", 1, "delivery");
+
+    // walls
+    var kickLf = 0, windowSqft = 0;
+    (E.walls || []).forEach(function (wl, i) {
+      var len = num(wl.len), ht = num(wl.ht), area = len * ht, nm = wl.name || "Wall " + (i + 1), before = lines.length;
+      var kh = wl.kick && wl.kick !== "none" ? num(wl.kick) : 0;
+      if (wl.type === "glass" || wl.type === "acrylic") {
+        var win = Math.max(0, len * (ht - kh / 12));
+        windowSqft += win;
+        add(nm, "Window wall framing", area, "winFrame");
+        if (wl.type === "acrylic") add(nm, "Acrylic windows", win, "winAcrylic");
+        else {
+          add(nm, (wl.impact === false ? "Non-impact" : "Impact") + " glass windows", win, wl.impact === false ? "winNonImpact" : "winImpact");
+          if (wl.tint) add(nm, "Tint", win, "tint");
+          if (wl.lowe) add(nm, "Low-E", win, "lowE");
+        }
+      } else {
+        add(nm, (len || "?") + "' × " + (ht || "?") + "' screen wall, " + SCREEN_TYPES[screenT], area, screenT === "2020" ? "wall2020" : "wall1814");
+        if (screenT === "pet") add(nm, "Pet screen upgrade", area, "petUp");
+      }
+      if (kh) { kickLf += len; add(nm, kh + "\" kick plate" + (E.type === "sunroom" ? ", insulated" : ""), len, "kick" + kh + (E.type === "sunroom" ? "ins" : "std")); }
+      var secTotal = lines.slice(before).reduce(function (s, l) { return s + l.price; }, 0);
+      outs["wall-" + wl.id] = (area ? Math.round(area).toLocaleString("en-US") + " sq ft" : "No size yet") + " · " + money(secTotal);
+    });
+
+    // transom
+    var tr = E.transom || {}, trLf = 0;
+    if (tr.on) {
+      trLf = num(tr.lf);
+      var trArea = trLf * num(tr.ht);
+      if (tr.type === "solid") add("Transom", trLf + " lf × " + num(tr.ht) + "' solid transom (roof panel)", trArea, "panel024");
+      else add("Transom", trLf + " lf × " + num(tr.ht) + "' screen transom", trArea, screenT === "2020" ? "wall2020" : "wall1814");
+      outs.transom = trArea ? Math.round(trArea) + " sq ft" : "Enter length and height";
+    }
+
+    // doors
+    var d = E.doors || {};
+    add("Doors", "Screen doors", d.screen, "screenDoor");
+    add("Doors", "Door kits", d.screen, "doorKit");
+    add("Doors", "Sunroom prime doors", d.prime, "primeDoor");
+    add("Doors", "Sliding glass doors", d.sliding, "slidingDoor");
+    add("Doors", "French doors", d.french, "frenchDoor");
+
+    // gutter + color
+    var g = E.gutter || {};
+    if (g.size === "5" || g.size === "7") add("Gutter & color", g.size + "\" gutter", g.lf, "gutter" + g.size);
+    if (E.color === "bronze") add("Gutter & color", "Bronze frame", footprint, "bronze");
+
+    // site & fees
+    add("Site & fees", "Tear-out of existing structure", E.tearout ? E.demoHrs : 0, "demoHour", "hr", "demo");
+    var cc = E.concrete || {};
+    if (cc.mode === "us" && num(cc.cost) > 0) addAmt("Site & fees", "Concrete (subcontracted, handled by us)", num(cc.cost) / marginDiv, num(cc.cost), "sub");
+    if (E.permit !== false) add("Site & fees", "Engineering & building permit", 1, "permit", "each", "fee");
+
+    // labor
+    var table = pricebook.labor[E.type] || pricebook.labor.screen;
+    var base = laborFromTable(table, footprint, pricebook.laborMode);
+    var X = pricebook.extraHrs, extras = [], extraHrs = 0;
+    function extra(label, qty, rate, unit) {
+      if (!(qty > 0)) return;
+      if (rate === null || rate === "") { extras.push({ label: label, qty: qty, unit: unit, missing: true }); if (missing.indexOf("Labor hours for " + label.toLowerCase()) < 0) missing.push("Labor hours for " + label.toLowerCase()); return; }
+      extras.push({ label: label, qty: qty, unit: unit, rate: num(rate), hrs: qty * num(rate) }); extraHrs += qty * num(rate);
+    }
+    extra("Kick plates", kickLf, X.kickLf, "lf");
+    extra("Transom", trLf, X.transomLf, "lf");
+    extra("Windows", windowSqft, X.windowSqft, "sq ft");
+    extra("Composite roof", compositeSqft, X.compositeSqft, "sq ft");
+    var flags = [];
+    if (pricebook.laborFlags && pricebook.laborFlags[E.type]) flags.push("Patio enclosure labor factors are copied from screen enclosures until you set them.");
+    if (E.type === "sunroom" && (E.walls || []).some(function (w) { return w.type !== "screen"; })) flags.push("The sunroom factors are written for screen walls. Glass and acrylic walls may take longer.");
+    var calcHrs = base.hrs + extraHrs;
+    var overridden = !blank(E.hoursOverride);
+    var hours = overridden ? num(E.hoursOverride) : calcHrs;
+    var rateItem = P.laborRate, rate = num(rateItem.price);
+    if (hours > 0) lines.push({ sec: "Labor", label: "Installation labor", qty: hours, unit: "team hr", unitPrice: rate, unitCost: num(rates.teamRate), price: hours * rate, cost: hours * num(rates.teamRate), kind: "labor" });
+
+    var subtotal = lines.reduce(function (s, l) { return s + l.price; }, 0);
+    var design = 0;
+    if (E.designMeasure) {
+      design = num(P.designFee.price) + subtotal * num(pricebook.measurePct);
+      lines.push({ sec: "Site & fees", label: "Design & measure ($" + num(P.designFee.price) + " + " + Math.round(num(pricebook.measurePct) * 100) + "% measure)", qty: 1, unit: "", unitPrice: design, unitCost: null, price: design, cost: null, kind: "fee" });
+    }
+    var gross = subtotal + design;
+    var military = E.military ? gross * num(pricebook.militaryPct) : 0;
+    var discount = Math.min(num(E.discount), gross - military);
+    var total = Math.max(0, gross - military - discount);
+    var T = pricebook.tiers;
+    var tiers = { essential: Math.round(total * (1 + num(T.essentialPct))), signature: Math.round(total), legacy: Math.round(total * (1 + num(T.legacyPct))) };
+
+    var sum = function (f) { return lines.filter(f).reduce(function (s, l) { return s + l.price; }, 0); };
+    var matCost = lines.filter(function (l) { return l.kind === "mat"; }).reduce(function (s, l) { return s + (l.cost === null ? l.price * marginDiv : l.cost); }, 0);
+    var subs = lines.filter(function (l) { return l.kind === "sub"; }).reduce(function (s, l) { return s + (l.cost || 0); }, 0);
+    var eng = sum(function (l) { return l.kind === "fee" && /permit/i.test(l.label); });
+    var demoHrs = E.tearout ? num(E.demoHrs) : 0;
+
+    var secs = [];
+    lines.forEach(function (l) { var s = secs.find(function (x) { return x.name === l.sec; }); if (!s) { s = { name: l.sec, lines: [], total: 0 }; secs.push(s); } s.lines.push(l); s.total += l.price; });
+
+    return {
+      lines: lines, secs: secs, missing: missing, outs: outs, footprint: footprint, compositeSqft: compositeSqft, kickLf: kickLf, windowSqft: windowSqft,
+      baseHrs: base.hrs, baseNote: base.note, extras: extras, extraHrs: extraHrs, calcHrs: calcHrs, hours: hours, overridden: overridden, laborRate: rate, flags: flags,
+      subtotal: subtotal, design: design, military: military, discount: discount, total: total, tiers: tiers,
+      matCost: matCost, subs: subs, eng: eng, teamHours: hours + demoHrs
+    };
+  }
+
+  /* ---------- field estimator: storage ---------- */
+  var estimates = new Map();
+  var estLoaded = false;
+  var estSaves = new Map();
+  var ev = { sub: "list", id: null, step: 0, bookMsg: "" };
+  var EST_STEPS = [["cust", "Customer"], ["roof", "Roof"], ["walls", "Walls"], ["transom", "Transom"], ["doors", "Doors"], ["finish", "Screen & color"], ["site", "Site & fees"], ["labor", "Labor"], ["review", "Review"]];
+
+  function estPending(id) { var s = estSaves.get(id); return !!(s && (s.timer || s.writing || s.dirty)); }
+  function estSave(id, delay) {
+    var E = estimates.get(id); if (E) E.updatedAt = new Date().toISOString();
+    if (mode !== "live" || readOnly) { setSaveState(); return; }
+    var s = estSaves.get(id) || { timer: null, writing: false, dirty: false };
+    estSaves.set(id, s);
+    if (s.timer) clearTimeout(s.timer);
+    s.timer = setTimeout(function () { s.timer = null; estFlush(id); }, delay == null ? 600 : delay);
+    setSaveState();
+  }
+  function estFlush(id) {
+    var s = estSaves.get(id); if (!s) return;
+    if (s.writing) { s.dirty = true; return; }
+    var E = estimates.get(id);
+    if (!E) { estSaves.delete(id); setSaveState(); return; }
+    s.writing = true; s.dirty = false;
+    var body = clone(E); Object.keys(body).forEach(function (k) { if (k.charAt(0) === "_") delete body[k]; });
+    db.collection("estimates").doc(id).set(body).then(function () { saveError = false; }).catch(handleWriteError).then(function () {
+      s.writing = false;
+      if (s.dirty) estFlush(id); else if (!s.timer) estSaves.delete(id);
+      setSaveState();
+    });
+  }
+  function estDelete(id) {
+    estimates.delete(id);
+    var s = estSaves.get(id); if (s && s.timer) clearTimeout(s.timer); estSaves.delete(id);
+    if (mode === "live" && !readOnly) db.collection("estimates").doc(id).delete().catch(handleWriteError);
+    ev = { sub: "list", id: null, step: 0 }; renderEst();
+  }
+  function savePricebook() {
+    if (mode === "live" && !readOnly) {
+      var body = clone(pricebook); body.updatedAt = new Date().toISOString();
+      return db.doc("settings/pricebook").set(body).then(function () { saveError = false; setSaveState(); return true; }).catch(function (e) { handleWriteError(e); return false; });
+    }
+    return Promise.resolve(mode !== "live");
+  }
+
+  function eid() { return "e" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+  function newRoof(type) { return { id: eid(), type: type || "screen", width: "", proj: "", style: "flat", mount: "fascia", fan: false, adder: "", adderNote: "" }; }
+  function newWall(name, type, len) { return { id: eid(), name: name, type: type || "screen", len: len || "", ht: "", impact: true, tint: false, lowe: false, kick: "none" }; }
+  function newEstimate() {
+    if (readOnly) return;
+    var id = mode === "live" ? db.collection("estimates").doc().id : eid();
+    var E = {
+      customer: { name: "", phone: "", email: "", address: "" }, estimator: "", type: "screen",
+      roofs: [newRoof("screen")], walls: [], wallsInit: false, screen: "2020", roofUpgrade: false,
+      transom: { on: false, lf: "", ht: "", type: "screen" },
+      doors: { screen: 1, prime: 0, sliding: 0, french: 0 },
+      gutter: { size: "none", lf: "" }, color: "white",
+      tearout: false, demoHrs: "", concrete: { mode: "none", cost: "" }, permit: true,
+      designMeasure: !!pricebook.includeDesignMeasure, military: false, discount: "", hoursOverride: "", notes: "",
+      status: "draft", tier: "", jobId: "", createdAt: new Date().toISOString()
+    };
+    E._id = id; estimates.set(id, E); estSave(id, 0);
+    ev = { sub: "wizard", id: id, step: 0 }; renderEst(); window.scrollTo(0, 0);
+  }
+  function curEst() { return estimates.get(ev.id); }
+  function estGo(patch) { for (var k in patch) ev[k] = patch[k]; renderEst(); window.scrollTo(0, 0); }
+
+  /* ---------- field estimator: views ---------- */
+  function renderEst() {
+    document.body.classList.toggle("presenting", ev.sub === "present" && estimates.has(ev.id));
+    if (ev.sub === "book") return renderBook();
+    if ((ev.sub === "wizard" || ev.sub === "present") && estimates.has(ev.id)) return ev.sub === "present" ? renderPresent() : renderWizard();
+    ev.sub = "list"; renderEstList();
+  }
+  function estTitle(E) { return (E.customer && E.customer.name ? E.customer.name : "New customer") + " · " + EST_TYPES[E.type]; }
+  var EST_STATUS = { draft: "Draft", presented: "Presented", job: "Job created" };
+
+  function renderEstList() {
+    var list = Array.from(estimates.values()).sort(function (a, b) { return String(b.updatedAt || b.createdAt || "").localeCompare(String(a.updatedAt || a.createdAt || "")); });
+    var miss = pbMissingCount();
+    main.innerHTML =
+      '<div class="est-head"><div><div class="nd-eyebrow">Advanced Aluminum</div><h2 class="nd-title">Field <span>Estimator</span></h2>' +
+      '<p class="sub" style="margin:6px 0 0">Walk the customer\'s project question by question. The app prices it from your JobTread price book and builds the Essential, Signature and Legacy options to present.</p></div>' +
+      '<div class="est-head-acts"><button class="btn" type="button" id="estBook">Price book' + (miss ? ' <span class="miss-pill">' + miss + " need prices</span>" : "") + '</button>' +
+      '<button class="btn primary" type="button" id="estNew"' + (readOnly ? " disabled" : "") + '>+ New estimate</button></div></div>' +
+      (!estLoaded ? '<div class="jobs"><div class="empty"><strong>Loading estimates…</strong></div></div>' :
+      !list.length ? '<div class="jobs"><div class="empty"><strong>No field estimates yet</strong>Tap <em>New estimate</em> at the customer\'s home. You\'ll answer questions about the roof, walls, doors and options, and the price builds as you go.</div></div>' :
+      '<div class="jobs">' + list.map(function (E) {
+        var C = calcEst(E);
+        var meta = [EST_TYPES[E.type], C.footprint ? Math.round(C.footprint).toLocaleString("en-US") + " sq ft" : "", E.estimator ? "by " + E.estimator : "", fmtDate(String(E.updatedAt || E.createdAt || "").slice(0, 10))].filter(Boolean).join(" · ");
+        var st = E.jobId ? "job" : E.status === "presented" ? "presented" : "draft";
+        return '<button type="button" class="jrow est-row" data-est="' + esc(E._id) + '"><span class="c-name"><span class="jname">' + esc(E.customer.name || "New customer") + '</span><br><span class="jmeta">' + esc(meta) + "</span></span>" +
+          '<span class="c-status"><span class="pill ' + (st === "job" ? "closed" : st === "presented" ? "active" : "estimate") + '">' + EST_STATUS[st] + (E.tier ? " · " + E.tier.charAt(0).toUpperCase() + E.tier.slice(1) : "") + "</span></span>" +
+          '<span class="c-num r"><span class="cell-lbl">Signature</span><span class="money">' + money(C.tiers.signature) + "</span></span>" +
+          '<span class="c-num r"><span class="cell-lbl">Labor</span><span class="money">' + (Math.round(C.hours * 10) / 10) + " hrs</span></span>" +
+          '<span class="c-num r">' + (C.missing.length ? '<span class="miss-pill">' + C.missing.length + " missing</span>" : '<span class="jmeta">Fully priced</span>') + "</span></button>";
+      }).join("") + "</div>");
+    $("#estBook").addEventListener("click", function () { estGo({ sub: "book" }); });
+    var nb = $("#estNew"); if (nb) nb.addEventListener("click", newEstimate);
+    main.querySelectorAll("[data-est]").forEach(function (b) { b.addEventListener("click", function () { var E = estimates.get(b.dataset.est); estGo({ sub: "wizard", id: b.dataset.est, step: E && E.status !== "draft" ? EST_STEPS.length - 1 : 0 }); }); });
+  }
+
+  // small builders
+  function chips(path, opts, val) {
+    return '<div class="chips" role="group">' + opts.map(function (o) {
+      return '<button type="button" class="chip" data-choice="' + path + '" data-val="' + esc(String(o[0])) + '" aria-pressed="' + (String(val) === String(o[0])) + '">' + o[1] + (o[2] ? '<small>' + o[2] + "</small>" : "") + "</button>";
+    }).join("") + "</div>";
+  }
+  function q(label, body, help) { return '<div class="q"><div class="q-label">' + label + "</div>" + body + (help ? '<p class="help" style="margin:2px 0 0">' + help + "</p>" : "") + "</div>"; }
+  function nIn(id, path, val, post, ph) {
+    return '<div class="input"><input id="' + id + '" data-e="' + path + '" data-kind="num" inputmode="decimal" autocomplete="off" value="' + esc(blank(val) ? "" : val) + '" placeholder="' + esc(ph || "0") + '">' + (post ? '<span class="post">' + post + "</span>" : "") + "</div>";
+  }
+  function tIn(id, path, val, ph, type) {
+    return '<div class="input"><input class="text" id="' + id + '" type="' + (type || "text") + '" data-e="' + path + '" data-kind="text" autocomplete="off" value="' + esc(val || "") + '" placeholder="' + esc(ph || "") + '"></div>';
+  }
+  function stepper(id, path, val) {
+    return '<div class="stepper"><button type="button" class="btn" data-step="' + path + '" data-d="-1" aria-label="One fewer">−</button><input id="' + id + '" data-e="' + path + '" data-kind="num" inputmode="numeric" value="' + num(val) + '" aria-label="Count"><button type="button" class="btn" data-step="' + path + '" data-d="1" aria-label="One more">+</button></div>';
+  }
+  function yesNo(path, val) { return chips(path, [[true, "Yes"], [false, "No"]], !!val); }
+
+  function renderWizard() {
+    var E = curEst(), step = Math.max(0, Math.min(ev.step, EST_STEPS.length - 1)), key = EST_STEPS[step][0];
+    if (key === "walls" && !E.wallsInit) {
+      var r0 = (E.roofs || [])[0] || {}, wt = E.type === "sunroom" ? "glass" : "screen";
+      E.walls = [newWall("Front", wt, r0.width), newWall("Left side", wt, r0.proj), newWall("Right side", wt, r0.proj)];
+      E.wallsInit = true; estSave(E._id, 0);
+    }
+    var dis = readOnly ? " disabled" : "";
+    main.innerHTML =
+      '<div class="wz">' +
+      '<div class="wz-top"><button class="btn ghost back" type="button" id="wzBack">← All estimates</button><span class="help" id="wzSaved"></span></div>' +
+      '<h2 class="wz-title">' + esc(estTitle(E)) + "</h2>" +
+      '<nav class="wz-steps" aria-label="Estimate steps">' + EST_STEPS.map(function (s, i) {
+        return '<button type="button" data-goto="' + i + '"' + (i === step ? ' aria-current="step"' : "") + ' class="' + (i < step ? "done" : "") + '"><b>' + (i + 1) + "</b>" + s[1] + "</button>";
+      }).join("") + "</nav>" +
+      '<fieldset class="wz-body"' + dis + ">" + stepHtml(key, E) + "</fieldset>" +
+      '<div class="wz-foot"><button class="btn" type="button" id="wzPrev"' + (step === 0 ? " disabled" : "") + '>Back</button>' +
+      '<div class="wz-total"><span class="lbl">Signature price</span><span class="money" id="wzTotal"></span><span class="help" id="wzMiss"></span></div>' +
+      (step < EST_STEPS.length - 1 ? '<button class="btn primary" type="button" id="wzNext">Next<span class="nx-name">: ' + EST_STEPS[step + 1][1] + "</span></button>" : '<button class="btn primary" type="button" id="wzPresent">Present to customer</button>') +
+      "</div></div>";
+    $("#wzBack").addEventListener("click", function () { estGo({ sub: "list", id: null }); });
+    main.querySelectorAll("[data-goto]").forEach(function (b) { b.addEventListener("click", function () { estGo({ step: +b.dataset.goto }); }); });
+    var pv = $("#wzPrev"); if (pv) pv.addEventListener("click", function () { estGo({ step: step - 1 }); });
+    var nx = $("#wzNext"); if (nx) nx.addEventListener("click", function () { estGo({ step: step + 1 }); });
+    var pr = $("#wzPresent"); if (pr) pr.addEventListener("click", startPresent);
+    bindWizard(E);
+    if (key === "review") bindReview(E);
+    if (key === "cust") bindCustomer(E);
+    refreshWizard(E);
+  }
+
+  function stepHtml(key, E) {
+    var C = calcEst(E);
+    if (key === "cust") {
+      return '<h3 class="step-h">Customer and project</h3>' +
+        '<div class="grid2">' +
+          '<div class="field"><label for="cName">Customer name</label>' + tIn("cName", "customer.name", E.customer.name, "Angela Gonzalez") + "</div>" +
+          '<div class="field"><label for="cPhone">Phone</label>' + tIn("cPhone", "customer.phone", E.customer.phone, "(321) 555-0100", "tel") + "</div>" +
+          '<div class="field"><label for="cEmail">Email</label>' + tIn("cEmail", "customer.email", E.customer.email, "name@example.com", "email") + "</div>" +
+          '<div class="field"><label for="cEst">Estimator</label>' + tIn("cEst", "estimator", E.estimator, "Your name") + "</div>" +
+          '<div class="field span2"><label for="cAddr">Project address</label>' + tIn("cAddr", "customer.address", E.customer.address, "727 Carriage Hill Rd, Melbourne") + "</div>" +
+        "</div>" +
+        q("What are we building?", chips("type", [["screen", "Screen enclosure", "Screen roof and walls"], ["patio", "Patio enclosure", "Usually a composite roof"], ["sunroom", "Sunroom", "Composite roof, windows"]], E.type),
+          "This sets the labor factors, the kick plate type and the starting answers for the roof and walls. Every answer can still be changed.");
+    }
+    if (key === "roof") {
+      return '<h3 class="step-h">Roof</h3><p class="sub">Start with the roof. The footprint you enter here is the square footage used for labor. If part of the roof is screen and part is composite, add a second section.</p>' +
+        (E.roofs || []).map(function (r, i) {
+          return '<section class="ecard"><div class="ecard-h"><b>Roof section ' + (i + 1) + '</b><span class="money" data-out="roof-' + r.id + '"></span>' +
+            ((E.roofs.length > 1) ? '<button type="button" class="xbtn" data-del-roof="' + i + '">Remove</button>' : "") + "</div>" +
+            q("Roof type", chips("roofs." + i + ".type", [["screen", "Screen roof"], ["composite", "Composite roof"]], r.type)) +
+            '<div class="grid2">' +
+              '<div class="field"><label for="rw' + i + '">Width along the house</label>' + nIn("rw" + i, "roofs." + i + ".width", r.width, "ft") + "</div>" +
+              '<div class="field"><label for="rp' + i + '">Projection out from the house</label>' + nIn("rp" + i, "roofs." + i + ".proj", r.proj, "ft") + "</div>" +
+            "</div>" +
+            (r.type === "composite" ?
+              '<p class="help panel-note" data-out="roofpanel-' + r.id + '"></p>' +
+              q("Attached to the house by", chips("roofs." + i + ".mount", [["fascia", "Fascia mount"], ["wall", "Wall mount"]], r.mount)) +
+              q("Fan beam in the roof panels?", yesNo("roofs." + i + ".fan", r.fan), "Fan beams carry wiring for ceiling fans and lights.")
+              : q("Roof style", chips("roofs." + i + ".style", Object.keys(ROOF_STYLES).map(function (k) { return [k, ROOF_STYLES[k]]; }), r.style || "flat"))) +
+            '<details class="adder"' + (num(r.adder) ? " open" : "") + '><summary>Anything unusual about this roof? (jog, odd angle)</summary><div class="grid2">' +
+              '<div class="field"><label for="ra' + i + '">Extra price</label><div class="input"><span class="pre">$</span><input id="ra' + i + '" data-e="roofs.' + i + '.adder" data-kind="num" inputmode="decimal" value="' + esc(blank(r.adder) ? "" : r.adder) + '" placeholder="0"></div></div>' +
+              '<div class="field"><label for="rn' + i + '">What it\'s for</label>' + tIn("rn" + i, "roofs." + i + ".adderNote", r.adderNote, "Jog at the chimney") + "</div></div></details>" +
+            "</section>";
+        }).join("") +
+        '<div class="add-row"><button type="button" class="btn" data-add-roof="screen">+ Add screen roof section</button><button type="button" class="btn" data-add-roof="composite">+ Add composite roof section</button></div>';
+    }
+    if (key === "walls") {
+      return '<h3 class="step-h">Walls</h3><p class="sub">Most jobs have three walls, with the house as the fourth. Lengths start from the roof size; enter the height of each wall. Add or remove walls to match the job.</p>' +
+        (E.walls || []).map(function (w, i) {
+          var win = w.type === "glass" || w.type === "acrylic";
+          return '<section class="ecard"><div class="ecard-h"><input class="wall-name text" data-e="walls.' + i + '.name" data-kind="text" value="' + esc(w.name || "Wall " + (i + 1)) + '" aria-label="Wall name"><span class="money" data-out="wall-' + w.id + '"></span><button type="button" class="xbtn" data-del-wall="' + i + '">Remove</button></div>' +
+            q("Wall type", chips("walls." + i + ".type", [["screen", "Screen"], ["glass", "Glass windows"], ["acrylic", "Acrylic windows"]], w.type)) +
+            '<div class="grid2">' +
+              '<div class="field"><label for="wl' + i + '">Length</label>' + nIn("wl" + i, "walls." + i + ".len", w.len, "ft") + "</div>" +
+              '<div class="field"><label for="wh' + i + '">Height</label>' + nIn("wh" + i, "walls." + i + ".ht", w.ht, "ft") + "</div>" +
+            "</div>" +
+            (w.type === "glass" ? q("Glass", chips("walls." + i + ".impact", [[true, "Impact"], [false, "Non-impact"]], w.impact !== false)) +
+              '<div class="grid2">' + q("Tint?", yesNo("walls." + i + ".tint", w.tint)) + q("Low-E?", yesNo("walls." + i + ".lowe", w.lowe)) + "</div>" : "") +
+            q("Kick plate" + (E.type === "sunroom" ? " (insulated)" : ""), chips("walls." + i + ".kick", [["none", "None"], ["16", "16\""], ["20", "20\""], ["24", "24\""]], w.kick || "none"),
+              win ? "Window area is the wall minus the kick plate height." : "") +
+            "</section>";
+        }).join("") +
+        '<div class="add-row"><button type="button" class="btn" data-add-wall>+ Add a wall</button>' + (E.walls.length > 1 ? '<button type="button" class="btn" data-same-walls>Make all walls match the first</button>' : "") + "</div>";
+    }
+    if (key === "transom") {
+      var t = E.transom || {};
+      return '<h3 class="step-h">Transom</h3>' +
+        q("Is there transom on this project?", yesNo("transom.on", t.on)) +
+        (t.on ? '<div class="grid2">' +
+          '<div class="field"><label for="tl">Length</label>' + nIn("tl", "transom.lf", t.lf, "lf") + "</div>" +
+          '<div class="field"><label for="th">Height</label>' + nIn("th", "transom.ht", t.ht, "ft") + "</div></div>" +
+          q("Transom material", chips("transom.type", [["screen", "Screen"], ["solid", "Solid", "Uses roof panels"]], t.type || "screen")) +
+          '<p class="help" data-out="transom"></p>' : "");
+    }
+    if (key === "doors") {
+      var d = E.doors || {};
+      return '<h3 class="step-h">Doors</h3><p class="sub">How many doors, and what kind?</p>' +
+        '<div class="door-grid">' +
+          q("Screen doors", stepper("dS", "doors.screen", d.screen), "Each one includes a door kit.") +
+          q("Sunroom prime doors", stepper("dP", "doors.prime", d.prime)) +
+          q("Sliding glass doors", stepper("dSl", "doors.sliding", d.sliding)) +
+          q("French doors", stepper("dF", "doors.french", d.french)) +
+        "</div>";
+    }
+    if (key === "finish") {
+      var g = E.gutter || {}, hasScreenRoof = (E.roofs || []).some(function (r) { return r.type === "screen"; }), firstW = num(((E.roofs || [])[0] || {}).width);
+      return '<h3 class="step-h">Screen, gutter and color</h3>' +
+        q("Screen type for the walls", chips("screen", [["1814", "18/14 standard"], ["2020", "20/20 No-See-Um"], ["pet", "Pet screen"]], E.screen || "1814")) +
+        (hasScreenRoof && E.screen !== "1814" ? q("Use the same screen on the roof?", yesNo("roofUpgrade", E.roofUpgrade), "Roof pricing is built on 18/14. Yes adds the upgrade.") : "") +
+        q("Gutter", chips("gutter.size", [["none", "None"], ["5", "5\" gutter"], ["7", "7\" gutter"]], g.size || "none"),
+          (E.roofs || []).some(function (r) { return r.type === "composite"; }) ? "Composite roof pricing already includes its gutter." : "") +
+        (g.size === "5" || g.size === "7" ? '<div class="field" style="max-width:260px"><label for="gl">Gutter length</label>' + nIn("gl", "gutter.lf", g.lf, "lf", firstW ? String(firstW) : "0") + "</div>" : "") +
+        q("Frame color", chips("color", [["white", "White"], ["bronze", "Bronze"]], E.color || "white"));
+    }
+    if (key === "site") {
+      var c = E.concrete || {};
+      return '<h3 class="step-h">Site work and fees</h3>' +
+        q("Tear out an existing structure?", yesNo("tearout", E.tearout)) +
+        (E.tearout ? '<div class="field" style="max-width:260px"><label for="dh">Tear-out hours</label>' + nIn("dh", "demoHrs", E.demoHrs, "hrs") + '<span class="help">At ' + usd2.format(num(pricebook.items.demoHour.price)) + " per hour</span></div>" : "") +
+        q("Concrete", chips("concrete.mode", [["none", "Not needed"], ["customer", "Customer arranges"], ["us", "We handle it", "Subbed out"]], c.mode || "none")) +
+        (c.mode === "us" ? '<div class="field" style="max-width:260px"><label for="cc">Concrete sub\'s price to us</label><div class="input"><span class="pre">$</span><input id="cc" data-e="concrete.cost" data-kind="num" inputmode="decimal" value="' + esc(blank(c.cost) ? "" : c.cost) + '" placeholder="0"></div><span class="help">Marked up to a ' + Math.round(num(pricebook.margin) * 100) + "% margin</span></div>" : "") +
+        q("Engineering and building permit", yesNo("permit", E.permit !== false), usd2.format(num(pricebook.items.permit.price)) + " per job") +
+        q("Charge design and measure?", yesNo("designMeasure", E.designMeasure), "$" + num(pricebook.items.designFee.price) + " design plus " + Math.round(num(pricebook.measurePct) * 100) + "% of the price for the measure") +
+        q("Military discount (" + Math.round(num(pricebook.militaryPct) * 100) + "%)?", yesNo("military", E.military)) +
+        '<div class="field" style="max-width:260px"><label for="disc">Other discount</label><div class="input"><span class="pre">$</span><input id="disc" data-e="discount" data-kind="num" inputmode="decimal" value="' + esc(blank(E.discount) ? "" : E.discount) + '" placeholder="0"></div></div>' +
+        '<div class="field"><label for="enotes">Notes for the office</label><textarea class="notes text" id="enotes" data-e="notes" data-kind="text" placeholder="Access, HOA, existing slab condition…">' + esc(E.notes || "") + "</textarea></div>";
+    }
+    if (key === "labor") {
+      var table = pricebook.labor[E.type] || [];
+      return '<h3 class="step-h">Labor</h3><p class="sub">Hours come from the ' + EST_TYPES[E.type].toLowerCase() + " labor factors in the price book, using the total roof footprint.</p>" +
+        '<div class="labor-box"><div class="labor-big"><span class="lbl">Calculated hours</span><span class="v" data-out="calcHrs"></span><span class="help" data-out="baseNote"></span></div>' +
+        '<table class="ledger"><thead><tr><th>Footprint up to</th><th>Factor</th></tr></thead><tbody>' + table.map(function (row) {
+          return "<tr><td>" + (row[0] === null || row[0] === "" ? "Over " + table[table.length - 2][0] + " sq ft" : row[0] + " sq ft") + "</td><td>" + row[1] + "</td></tr>";
+        }).join("") + "</tbody></table></div>" +
+        '<div id="laborExtras"></div><div id="laborFlags"></div>' +
+        '<div class="field" style="max-width:300px;margin-top:6px"><label for="ho">Override hours</label>' + nIn("ho", "hoursOverride", E.hoursOverride, "team hrs", "Leave blank to use the calculation") +
+        '<span class="help">Use this when the job is harder or easier than the formula expects.</span></div>';
+    }
+    if (key === "review") {
+      return '<h3 class="step-h">Review</h3><div id="reviewBody"></div>';
+    }
+    return "";
+  }
+
+  function bindCustomer(E) {
+    // keep the heading in step with the customer name
+    var n = $("#cName"); if (n) n.addEventListener("input", function () { var t = main.querySelector(".wz-title"); if (t) t.textContent = estTitle(E); });
+  }
+  function parseChoice(v) { return v === "true" ? true : v === "false" ? false : v; }
+  function bindWizard(E) {
+    main.querySelectorAll("[data-e]").forEach(function (el) {
+      el.addEventListener("input", function () {
+        if (readOnly) return;
+        setPath(E, el.dataset.e, el.dataset.kind === "num" ? parseField(el.value) : el.value);
+        estSave(E._id, 700); refreshWizard(E);
+      });
+    });
+    main.querySelectorAll("[data-choice]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        if (readOnly) return;
+        var path = b.dataset.choice, val = parseChoice(b.dataset.val);
+        setPath(E, path, val);
+        if (path === "type") applyTypeDefaults(E, val);
+        if (/^roofs\.\d+\.type$/.test(path) && val === "composite" && E.type !== "screen") { /* keep */ }
+        estSave(E._id, 0); keepScroll(renderWizard);
+      });
+    });
+    main.querySelectorAll("[data-step]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        if (readOnly) return;
+        var v = Math.max(0, num(getPath(E, b.dataset.step)) + num(b.dataset.d));
+        setPath(E, b.dataset.step, v); estSave(E._id, 400);
+        var inp = b.parentNode.querySelector("input"); if (inp) inp.value = v;
+        refreshWizard(E);
+      });
+    });
+    main.querySelectorAll("[data-add-roof]").forEach(function (b) { b.addEventListener("click", function () { E.roofs.push(newRoof(b.dataset.addRoof)); estSave(E._id, 0); keepScroll(renderWizard); }); });
+    main.querySelectorAll("[data-del-roof]").forEach(function (b) { b.addEventListener("click", function () { E.roofs.splice(+b.dataset.delRoof, 1); estSave(E._id, 0); keepScroll(renderWizard); }); });
+    var aw = main.querySelector("[data-add-wall]"); if (aw) aw.addEventListener("click", function () {
+      var last = E.walls[E.walls.length - 1];
+      var w = newWall("Wall " + (E.walls.length + 1), last ? last.type : "screen", ""); if (last) { w.ht = last.ht; w.kick = last.kick; w.impact = last.impact; }
+      E.walls.push(w); estSave(E._id, 0); keepScroll(renderWizard);
+    });
+    main.querySelectorAll("[data-del-wall]").forEach(function (b) { b.addEventListener("click", function () { E.walls.splice(+b.dataset.delWall, 1); estSave(E._id, 0); keepScroll(renderWizard); }); });
+    var sw = main.querySelector("[data-same-walls]"); if (sw) sw.addEventListener("click", function () {
+      var f = E.walls[0]; E.walls.forEach(function (w, i) { if (i) { w.type = f.type; w.ht = f.ht; w.kick = f.kick; w.impact = f.impact; w.tint = f.tint; w.lowe = f.lowe; } });
+      estSave(E._id, 0); keepScroll(renderWizard);
+    });
+  }
+  function keepScroll(fn) { var y = window.scrollY; fn(); window.scrollTo(0, y); }
+  function applyTypeDefaults(E, type) {
+    var rt = type === "screen" ? "screen" : "composite";
+    (E.roofs || []).forEach(function (r) { if (!num(r.width) && !num(r.proj)) r.type = rt; });
+    if (!E.wallsInit) return;
+    if (type === "sunroom") E.walls.forEach(function (w) { if (!num(w.ht)) w.type = "glass"; });
+  }
+
+  function refreshWizard(E) {
+    var C = calcEst(E);
+    var t = $("#wzTotal"); if (t) t.textContent = money(C.tiers.signature);
+    var m = $("#wzMiss"); if (m) m.textContent = C.missing.length ? C.missing.length + " item" + (C.missing.length === 1 ? " has" : "s have") + " no price yet" : "";
+    var outs = Object.assign({}, C.outs, { calcHrs: (Math.round(C.calcHrs * 10) / 10) + " team hrs", baseNote: C.baseNote ? C.baseNote + " = " + (Math.round(C.baseHrs * 10) / 10) + " hrs" : "Enter the roof size to calculate" });
+    main.querySelectorAll("[data-out]").forEach(function (el) { el.textContent = outs[el.dataset.out] || ""; });
+    var lx = $("#laborExtras");
+    if (lx) {
+      lx.innerHTML = C.extras.length ? '<h4 class="mini-h">Hours added for options</h4><ul class="extras">' + C.extras.map(function (x) {
+        return "<li><span>" + esc(x.label) + " · " + Math.round(x.qty) + " " + x.unit + "</span>" + (x.missing ? '<span class="miss-pill">No hours set</span>' : "<span>+" + (Math.round(x.hrs * 10) / 10) + " hrs</span>") + "</li>";
+      }).join("") + "</ul>" : "";
+      $("#laborFlags").innerHTML = C.flags.map(function (f) { return '<p class="flag">' + esc(f) + "</p>"; }).join("") +
+        (C.overridden ? '<p class="flag">Using your override of ' + C.hours + " hours instead of the calculated " + (Math.round(C.calcHrs * 10) / 10) + ".</p>" : "");
+    }
+    if ($("#reviewBody")) drawReview(E, C);
+  }
+
+  function drawReview(E, C) {
+    var box = $("#reviewBody");
+    var job = { rates: { teamRate: rates.teamRate, overheadRate: rates.overheadRate }, sqft: C.footprint, estimate: { price: C.total, materials: C.matCost, teamHours: C.teamHours, subs: C.subs, engineering: C.eng } };
+    var J = calcEstimate(job);
+    var miss = C.missing.length ? '<div class="banner"><strong>' + C.missing.length + " item" + (C.missing.length === 1 ? " has" : "s have") + " no price yet, so this total is low.</strong> " + esc(C.missing.join(", ")) + '. <button type="button" class="linkbtn" id="rvBook">Open the price book</button></div>' : "";
+    var tierPh = pricebook.tiers.placeholder ? '<p class="flag">The tier features are placeholders until you replace them with the copy from your pricing graphic in the price book.</p>' : "";
+    box.innerHTML = miss +
+      '<div class="rv-grid">' +
+      '<section class="panel"><h3>Signature estimate</h3><div class="table-scroll"><table class="ledger rv"><thead><tr><th>Item</th><th>Qty</th><th>Price</th></tr></thead><tbody>' +
+        C.secs.map(function (s) {
+          return '<tr class="rv-sec"><td colspan="2">' + esc(s.name) + "</td><td>" + money(s.total, true) + "</td></tr>" + s.lines.map(function (l) {
+            return "<tr><td>" + esc(l.label) + (l.missing ? ' <span class="miss-pill">No price</span>' : "") + '</td><td class="muted">' + (l.unit ? (Math.round(l.qty * 10) / 10).toLocaleString("en-US") + " " + l.unit + '<span class="why">@ ' + usd2.format(l.unitPrice) + "</span>" : "") + "</td><td>" + money(l.price, true) + "</td></tr>";
+          }).join("");
+        }).join("") +
+        (C.military ? '<tr><td>Military discount</td><td></td><td class="neg">−' + money(C.military, true) + "</td></tr>" : "") +
+        (C.discount ? '<tr><td>Discount</td><td></td><td class="neg">−' + money(C.discount, true) + "</td></tr>" : "") +
+        '<tr class="result"><td>Signature price</td><td></td><td>' + money(C.total, true) + "</td></tr>" +
+      "</tbody></table></div></section>" +
+      '<div class="stack">' +
+      '<section class="panel"><h3>Three options for the customer</h3>' +
+        tierRow("Essential", C.tiers.essential, pricebook.tiers.essentialPct) + tierRow("Signature", C.tiers.signature, 0, true) + tierRow("Legacy", C.tiers.legacy, pricebook.tiers.legacyPct) + tierPh +
+        '<button class="btn primary wide" type="button" id="rvPresent">Present to customer</button></section>' +
+      '<section class="panel"><h3>Profit at the Signature price</h3><p class="sub">Using this app\'s job costing rates (' + usd2.format(num(rates.teamRate)) + " labor + " + usd2.format(num(rates.overheadRate)) + ' overhead per team hour).</p>' +
+        '<table class="ledger"><tbody>' +
+          "<tr><td>Materials (cost)</td><td>" + money(J.mat) + "</td></tr>" +
+          "<tr><td>Labor · " + (Math.round(J.hrs * 10) / 10) + " team hrs</td><td>" + money(J.labor) + "</td></tr>" +
+          (J.subs ? "<tr><td>Subcontractors</td><td>" + money(J.subs) + "</td></tr>" : "") +
+          "<tr><td>Permit & engineering</td><td>" + money(J.eng) + "</td></tr>" +
+          '<tr class="result"><td>Gross profit</td><td class="' + (J.gross < 0 ? "neg" : "") + '">' + money(J.gross) + " · " + pct(J.gm) + "</td></tr>" +
+          "<tr><td>Overhead</td><td>" + money(J.oh) + "</td></tr>" +
+          '<tr class="result"><td>Net profit</td><td class="' + (J.net < 0 ? "neg" : "pos") + '">' + money(J.net) + " · " + pct(J.nm) + "</td></tr>" +
+        "</tbody></table>" +
+        '<div class="closeout-actions" style="margin-top:14px">' +
+          (E.jobId && jobs.has(E.jobId) ? '<button class="btn" type="button" id="rvOpenJob">Open the job</button>' : '<button class="btn" type="button" id="rvMakeJob"' + (readOnly ? " disabled" : "") + ">Create job from this estimate</button>") +
+          (readOnly ? "" : '<button class="btn danger" type="button" id="rvDel" style="margin-left:auto">Delete estimate</button>') +
+        '</div><p class="help" id="rvMsg" style="margin:8px 0 0">' + (E.tier ? "Customer chose " + E.tier.charAt(0).toUpperCase() + E.tier.slice(1) + ". The job uses that price." : "The job uses the Signature price unless the customer picks another option.") + "</p></section>" +
+      "</div></div>";
+    bindReview(E);
+  }
+  function tierRow(name, price, pctv, anchor) {
+    return '<div class="tier-row' + (anchor ? " anchor" : "") + '"><span><b>' + name + " Series</b><small>" + (anchor ? "Anchor price" : (pctv > 0 ? "+" : "−") + Math.abs(Math.round(pctv * 100)) + "% of Signature") + '</small></span><span class="money">' + money(price) + "</span></div>";
+  }
+  function bindReview(E) {
+    var b;
+    if ((b = $("#rvBook"))) b.onclick = function () { estGo({ sub: "book" }); };
+    if ((b = $("#rvPresent"))) b.onclick = startPresent;
+    if ((b = $("#rvMakeJob"))) b.onclick = function () { makeJobFromEstimate(E); };
+    if ((b = $("#rvOpenJob"))) b.onclick = function () { document.body.classList.remove("presenting"); go({ name: "job", jobId: E.jobId, tab: "estimate", back: "list" }); };
+    if ((b = $("#rvDel"))) b.onclick = function () {
+      if (!b.classList.contains("armed")) { b.classList.add("armed"); b.textContent = "Delete permanently?"; var bb = b; setTimeout(function () { if (bb.isConnected) { bb.classList.remove("armed"); bb.textContent = "Delete estimate"; } }, 4000); return; }
+      estDelete(E._id);
+    };
+  }
+
+  function makeJobFromEstimate(E) {
+    if (readOnly) return;
+    var C = calcEst(E), price = E.tier ? C.tiers[E.tier] : C.tiers.signature;
+    var id = mode === "live" ? db.collection("jobs").doc().id : rid();
+    var j = {
+      name: (E.customer.name || "New customer") + " " + EST_TYPES[E.type].toLowerCase(), location: E.customer.address || "", type: EST_JOBTYPE[E.type], sqft: Math.round(C.footprint) || "", status: "estimate",
+      createdAt: new Date().toISOString(), rates: { teamRate: rates.teamRate, overheadRate: rates.overheadRate },
+      estimate: { price: Math.round(price), materials: Math.round(C.matCost * 100) / 100, teamHours: Math.round(C.teamHours * 10) / 10, subs: Math.round(C.subs * 100) / 100, engineering: Math.round(C.eng * 100) / 100 },
+      bills: [], actual: { price: "", teamHours: "", subs: "", engineering: "" },
+      notes: "From field estimate" + (E.estimator ? " by " + E.estimator : "") + ". " + (E.tier ? E.tier.charAt(0).toUpperCase() + E.tier.slice(1) : "Signature") + " Series. " + (E.notes || ""),
+      fromEstimate: E._id
+    };
+    j._id = id; jobs.set(id, j); queueSave(id, 0);
+    E.jobId = id; E.status = "job"; estSave(E._id, 0);
+    keepScroll(renderWizard);
+    var m = $("#rvMsg"); if (m) m.textContent = "Job created with " + money(price) + ", " + money(C.matCost) + " materials and " + (Math.round(C.teamHours * 10) / 10) + " team hours. Open it to track bills and closeout.";
+  }
+
+  /* ---------- presentation ---------- */
+  function startPresent() { var E = curEst(); if (E && E.status === "draft") { E.status = "presented"; estSave(E._id, 0); } estGo({ sub: "present" }); }
+  function renderPresent() {
+    var E = curEst(), C = calcEst(E), T = pricebook.tiers;
+    var roofs = (E.roofs || []).map(function (r) { return (r.type === "composite" ? "insulated composite" : "screen") + " roof"; });
+    var walls = {}; (E.walls || []).forEach(function (w) { var k = w.type === "glass" ? (w.impact === false ? "glass" : "impact glass") : w.type === "acrylic" ? "acrylic window" : "screen"; walls[k] = (walls[k] || 0) + 1; });
+    var wallTxt = Object.keys(walls).map(function (k) { return walls[k] + " " + k + " wall" + (walls[k] === 1 ? "" : "s"); }).join(", ");
+    var dims = (E.roofs || []).filter(function (r) { return num(r.width) && num(r.proj); }).map(function (r) { return r.width + "' × " + r.proj + "'"; }).join(" + ");
+    var card = function (k, name, tag, feats, popular) {
+      var chosen = E.tier === k;
+      return '<article class="tcard' + (popular ? " popular" : "") + (chosen ? " chosen" : "") + '">' + (popular ? '<div class="ribbon">Most popular</div>' : "") +
+        '<h3>' + name + '<span>Series</span></h3><p class="ttag">' + tag + '</p><div class="tprice">' + money(C.tiers[k]) + "</div>" +
+        '<ul>' + (feats || []).filter(function (f) { return String(f).trim(); }).map(function (f) { return "<li>" + esc(f) + "</li>"; }).join("") + "</ul>" +
+        '<button type="button" class="btn' + (chosen || popular ? " primary" : "") + ' wide" data-tier="' + k + '">' + (chosen ? "Selected" : "Choose " + name) + "</button></article>";
+    };
+    main.innerHTML =
+      '<div class="pres">' +
+        '<div class="pres-top"><img src="logo-sm.png" alt="Advanced Aluminum" width="600" height="249"><button type="button" class="btn ghost" id="presExit">Exit</button></div>' +
+        '<div class="pres-intro"><div class="nd-eyebrow">Prepared for ' + esc(E.customer.name || "you") + "</div><h2>Your new " + esc(EST_TYPES[E.type].toLowerCase()) + "</h2>" +
+          '<p>' + esc([dims ? dims + (C.footprint ? " (" + Math.round(C.footprint).toLocaleString("en-US") + " sq ft)" : "") : "", roofs.join(" and "), wallTxt].filter(Boolean).join(" · ")) + (E.customer.address ? "<br>" + esc(E.customer.address) : "") + "</p></div>" +
+        '<div class="tgrid">' +
+          card("essential", "Essential", "Everything you need, built right", T.essential) +
+          card("signature", "Signature", "Our most chosen build", T.signature, true) +
+          card("legacy", "Legacy", "Built to be the last one you buy", T.legacy) +
+        "</div>" +
+        '<p class="pres-foot">Pricing valid for 30 days. Every project includes Advanced Aluminum\'s 10-year workmanship warranty. 321-639-1451 · advancedaluminum1.com</p>' +
+      "</div>";
+    $("#presExit").addEventListener("click", function () { estGo({ sub: "wizard", step: EST_STEPS.length - 1 }); });
+    main.querySelectorAll("[data-tier]").forEach(function (b) {
+      b.addEventListener("click", function () { if (readOnly) return; E.tier = E.tier === b.dataset.tier ? "" : b.dataset.tier; estSave(E._id, 0); keepScroll(renderPresent); });
+    });
+  }
+
+  /* ---------- price book ---------- */
+  function renderBook() {
+    var P = pricebook, dis = readOnly ? " disabled" : "", miss = pbMissingCount();
+    var groups = PB_GROUPS.map(function (g) {
+      var keys = Object.keys(P.items).filter(function (k) { return P.items[k].g === g; });
+      return '<section class="panel"><h3>' + g + '</h3><div class="table-scroll"><table class="bills pb"><thead><tr><th>Item</th><th>Unit</th><th class="r">Our cost</th><th class="r">Customer price</th></tr></thead><tbody>' +
+        keys.map(function (k) {
+          var it = P.items[k], missing = it.price === null || it.price === "";
+          return '<tr class="' + (missing ? "pb-miss" : "") + '"><td>' + esc(it.label) + (missing ? ' <span class="miss-pill">Needs price</span>' : "") + (it.note ? '<span class="why">' + esc(it.note) + "</span>" : "") + "</td><td>" + esc(it.unit) + "</td>" +
+            '<td><div class="input"><span class="pre">$</span><input id="pbc-' + k + '" data-pb="' + k + '" data-f="cost" inputmode="decimal" value="' + (it.cost === null || it.cost === "" ? "" : it.cost) + '" placeholder="—"></div></td>' +
+            '<td><div class="input"><span class="pre">$</span><input id="pbp-' + k + '" data-pb="' + k + '" data-f="price" inputmode="decimal" value="' + (missing ? "" : it.price) + '" placeholder="Needs price"></div></td></tr>';
+        }).join("") + "</tbody></table></div></section>";
+    }).join("");
+    var lt = function (k, name) {
+      return '<div><div class="q-label">' + name + (P.laborFlags && P.laborFlags[k] ? ' <span class="miss-pill">Copied, confirm</span>' : "") + "</div>" +
+        '<table class="bills pb"><thead><tr><th>Footprint up to (sq ft)</th><th>Hours per sq ft</th></tr></thead><tbody>' +
+        P.labor[k].map(function (row, i) {
+          return '<tr><td><div class="input"><input id="lt-' + k + i + '" data-lt="' + k + '" data-i="' + i + '" data-c="0" inputmode="decimal" value="' + (row[0] === null ? "" : row[0]) + '" placeholder="No limit"></div></td><td><div class="input"><input id="lf-' + k + i + '" data-lt="' + k + '" data-i="' + i + '" data-c="1" inputmode="decimal" value="' + row[1] + '"></div></td></tr>';
+        }).join("") + "</tbody></table></div>";
+    };
+    var xh = function (k, label, unit) { var v = P.extraHrs[k]; return '<div class="field"><label for="xh-' + k + '">' + label + '</label><div class="input"><input id="xh-' + k + '" data-xh="' + k + '" inputmode="decimal" value="' + (v === null || v === "" ? "" : v) + '" placeholder="Not set"><span class="post">hrs / ' + unit + "</span></div></div>"; };
+    main.innerHTML =
+      '<button class="btn ghost back" id="pbBack" type="button">← Field estimator</button>' +
+      '<div class="est-head"><div><h2 class="nd-title">Price <span>Book</span></h2><p class="sub" style="margin:6px 0 0">Loaded from your JobTread catalog (October 27, 2026). Customer price is cost ÷ ' + (1 - num(P.margin)).toFixed(2) + " for a " + Math.round(num(P.margin) * 100) + "% margin; changing a cost updates its price. " + (miss ? "<b>" + miss + " items still need a price.</b>" : "") + "</p></div>" +
+      '<div class="est-head-acts"><button class="btn primary" type="button" id="pbSave"' + dis + '>Save price book</button></div></div>' +
+      '<p class="help" id="pbMsg" aria-live="polite">' + esc(ev.bookMsg || "") + "</p>" +
+      '<fieldset class="stack"' + dis + ">" + groups +
+      '<section class="panel"><h3>Labor hours</h3><p class="sub">Hours = footprint × factor. JobTread applies one factor to the whole footprint, which jumps at each breakpoint (599 sq ft gets 71.9 hours, 601 gets 36.7). Bracketed applies each factor only to the square feet inside its range.</p>' +
+        q("How factors apply", chips("laborMode", [["whole", "Whole footprint", "How JobTread does it"], ["bracket", "Bracketed", "No price jumps"]], P.laborMode)) +
+        '<div class="lt-grid">' + lt("screen", "Screen enclosures") + lt("sunroom", "Sunrooms") + lt("patio", "Patio enclosures") + "</div>" +
+        '<h4 class="mini-h">Hours added for options</h4><div class="grid2">' + xh("kickLf", "Kick plates", "lf") + xh("transomLf", "Transom", "lf") + xh("windowSqft", "Windows", "sq ft") + xh("compositeSqft", "Composite roof", "sq ft") + "</div></section>" +
+      '<section class="panel"><h3>Rules</h3><div class="grid2">' +
+        '<div class="field"><label for="pbM">Margin on cost</label><div class="input"><input id="pbM" data-rule="margin" data-pct="1" inputmode="decimal" value="' + Math.round(num(P.margin) * 1000) / 10 + '"><span class="post">%</span></div></div>' +
+        '<div class="field"><label for="pbS">Upgraded panel when span is over</label><div class="input"><input id="pbS" data-rule="spanLimit" inputmode="decimal" value="' + P.spanLimit + '"><span class="post">ft</span></div></div>' +
+        '<div class="field"><label for="pbMe">Measure fee</label><div class="input"><input id="pbMe" data-rule="measurePct" data-pct="1" inputmode="decimal" value="' + Math.round(num(P.measurePct) * 1000) / 10 + '"><span class="post">% of price</span></div></div>' +
+        '<div class="field"><label for="pbMil">Military discount</label><div class="input"><input id="pbMil" data-rule="militaryPct" data-pct="1" inputmode="decimal" value="' + Math.round(num(P.militaryPct) * 1000) / 10 + '"><span class="post">%</span></div></div>' +
+        '<div class="field"><label for="pbE">Essential vs Signature</label><div class="input"><input id="pbE" data-tierpct="essentialPct" inputmode="decimal" value="' + Math.round(num(P.tiers.essentialPct) * 1000) / 10 + '"><span class="post">%</span></div></div>' +
+        '<div class="field"><label for="pbL">Legacy vs Signature</label><div class="input"><input id="pbL" data-tierpct="legacyPct" inputmode="decimal" value="' + Math.round(num(P.tiers.legacyPct) * 1000) / 10 + '"><span class="post">%</span></div></div>' +
+        "</div>" + q("Charge design and measure on new estimates by default?", chips("includeDesignMeasure", [[true, "Yes"], [false, "No"]], !!P.includeDesignMeasure)) + "</section>" +
+      '<section class="panel"><h3>Tier features</h3><p class="sub">What the customer sees under each option, one line per feature. Signature comes from Proposal 1365-1. Replace the rest with the copy from your pricing graphic.</p><div class="tf-grid">' +
+        ["essential", "signature", "legacy"].map(function (k) { return '<div class="field"><label for="tf-' + k + '">' + k.charAt(0).toUpperCase() + k.slice(1) + ' Series</label><textarea class="notes text tf" id="tf-' + k + '" data-tf="' + k + '">' + esc((P.tiers[k] || []).join("\n")) + "</textarea></div>"; }).join("") +
+      "</div></section>" +
+      '<div class="closeout-actions"><button class="btn primary" type="button" id="pbSave2"' + dis + '>Save price book</button><button class="btn danger" type="button" id="pbReset"' + dis + ">Reset to JobTread prices</button></div>" +
+      "</fieldset>";
+
+    var dirty = function () { ev.bookMsg = "Unsaved changes."; var m = $("#pbMsg"); if (m) m.textContent = ev.bookMsg; };
+    $("#pbBack").addEventListener("click", function () { ev.bookMsg = ""; estGo({ sub: ev.id && estimates.has(ev.id) ? "wizard" : "list" }); });
+    main.querySelectorAll("[data-pb]").forEach(function (el) {
+      el.addEventListener("input", function () {
+        var it = P.items[el.dataset.pb], v = parseField(el.value);
+        it[el.dataset.f] = v === "" ? null : v;
+        if (el.dataset.f === "cost" && v !== "") { it.price = Math.round(v / (1 - num(P.margin)) * 10000) / 10000; var pi = $("#pbp-" + el.dataset.pb); if (pi) pi.value = it.price; }
+        var tr = el.closest("tr"); if (tr) tr.classList.toggle("pb-miss", it.price === null);
+        dirty();
+      });
+    });
+    main.querySelectorAll("[data-lt]").forEach(function (el) { el.addEventListener("input", function () { var v = parseField(el.value); P.labor[el.dataset.lt][+el.dataset.i][+el.dataset.c] = v === "" ? (el.dataset.c === "0" ? null : 0) : v; if (P.laborFlags) P.laborFlags[el.dataset.lt] = false; dirty(); }); });
+    main.querySelectorAll("[data-xh]").forEach(function (el) { el.addEventListener("input", function () { var v = parseField(el.value); P.extraHrs[el.dataset.xh] = v === "" ? null : v; dirty(); }); });
+    main.querySelectorAll("[data-rule]").forEach(function (el) { el.addEventListener("input", function () { var v = num(el.value); P[el.dataset.rule] = el.dataset.pct ? v / 100 : v; dirty(); }); });
+    main.querySelectorAll("[data-tierpct]").forEach(function (el) { el.addEventListener("input", function () { P.tiers[el.dataset.tierpct] = num(el.value) / 100; dirty(); }); });
+    main.querySelectorAll("[data-tf]").forEach(function (el) { el.addEventListener("input", function () { P.tiers[el.dataset.tf] = el.value.split("\n").map(function (s) { return s.trim(); }).filter(Boolean); P.tiers.placeholder = false; dirty(); }); });
+    main.querySelectorAll("[data-choice]").forEach(function (b) { b.addEventListener("click", function () { P[b.dataset.choice] = parseChoice(b.dataset.val); dirty(); keepScroll(renderBook); }); });
+    var save = function () {
+      ev.bookMsg = "Saving…"; var m = $("#pbMsg"); if (m) m.textContent = ev.bookMsg;
+      savePricebook().then(function (ok) { ev.bookMsg = ok ? (mode === "live" ? "Price book saved. Every estimate uses the new prices." : "Saving isn't available in this view.") : "The price book didn't save. Try again."; var mm = $("#pbMsg"); if (mm) mm.textContent = ev.bookMsg; });
+    };
+    $("#pbSave").addEventListener("click", save); $("#pbSave2").addEventListener("click", save);
+    var rs = $("#pbReset");
+    rs.addEventListener("click", function () {
+      if (!rs.classList.contains("armed")) { rs.classList.add("armed"); rs.textContent = "Replace every price with JobTread's?"; setTimeout(function () { if (rs.isConnected) { rs.classList.remove("armed"); rs.textContent = "Reset to JobTread prices"; } }, 4000); return; }
+      pricebook = pbDefaults(); ev.bookMsg = "Reset to JobTread prices. Save to keep it."; renderBook();
+    });
+  }
+
   /* ---------- boot ---------- */
   renderRatesSummary();
 
   function startLocal() {
     mode = "local";
     exampleJobs().forEach(function (j) { jobs.set(j._id, j); });
-    loaded = true;
+    loaded = true; estLoaded = true;
     renderBanner();
     render();
   }
@@ -2825,6 +3717,20 @@ code { font-family: var(--font-data); font-size: .9em; background: var(--surface
           if (view.name === "job") updateOutputs();
         }
       }
+    }, function () {});
+    db.doc("settings/pricebook").onSnapshot(function (snap) {
+      if (snap.exists) { pricebook = mergePricebook(snap.data()); if (view.name === "est" && ev.sub !== "book") renderEst(); }
+    }, function () {});
+    db.collection("estimates").onSnapshot(function (snap) {
+      var seen = new Set();
+      snap.docs.forEach(function (d) {
+        seen.add(d.id);
+        if (estPending(d.id)) return;
+        var body = clone(d.data() || {}); body._id = d.id; estimates.set(d.id, body);
+      });
+      estimates.forEach(function (_, id) { if (!seen.has(id) && !estPending(id) && !snap.metadata.fromCache) estimates.delete(id); });
+      estLoaded = true;
+      if (view.name === "est" && (ev.sub === "list" || !estimates.has(ev.id))) renderEst();
     }, function () {});
     db.collection("jobs").onSnapshot(function (snap) {
       var seen = new Set();

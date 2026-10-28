@@ -15,6 +15,7 @@ PDF and Excel reports, and spreadsheet import.
 | Sign-in and storage | `public/hub.js` | Email sign-in, the Team list, and saving jobs, rates and bill files to Supabase. |
 | Settings | `public/config.js` | Your Supabase address and public key. |
 | Database | `supabase/migrations/0001_init.sql` | Tables, security rules and the bill-file storage. |
+| Estimates | `supabase/migrations/0002_estimates.sql` | The table for saved field estimates. |
 | Claude features | `supabase/functions/claude/index.ts` | Reads bills and writes insights with the company's Claude API key, kept on the server. |
 | Hosting | `netlify.toml` | Tells Netlify to publish the `public` folder. |
 
@@ -41,6 +42,7 @@ start.
    and pick a US East region.
 2. When it's ready, open **SQL Editor → New query**. Paste the whole of
    `supabase/migrations/0001_init.sql` and click **Run**.
+   Then do the same with `supabase/migrations/0002_estimates.sql` (saved field estimates).
 3. Add yourself as the first admin. In a new query, run this with your email:
    ```sql
    insert into public.members (email, name, role)
