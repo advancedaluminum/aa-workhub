@@ -588,6 +588,24 @@ code { font-family: var(--font-data); font-size: .9em; background: var(--surface
 
 /* customer presentation */
 body.presenting .top, body.presenting .mainnav, body.presenting .foot, body.presenting #banner, body.presenting #ratesPanel { display: none; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.pb2 td { vertical-align: top; }
+.pb2 .pb-ck { width: 28px; padding-top: 18px; }
+.pb2 .pb-ck input { width: 18px; height: 18px; }
+.pb2 td:nth-child(2) { min-width: 220px; }
+.pb2 .pb-unit { min-width: 64px !important; width: 80px; }
+.pb2 .input input { font-size: 14.5px; padding: 8px; }
+.pb2 tr.pb-arch td { opacity: .6; }
+.pb2 .pb-date { white-space: nowrap; color: var(--ink-2); font-size: 13px; padding-top: 18px; }
+.pb-modewrap { display: block; margin-top: 3px; }
+.pb-mode { font-size: 11.5px; color: var(--ink-2); font-weight: 600; }
+.pb-mode.hand { color: var(--warn); }
+.pb-useauto { font-size: 11.5px; }
+.pb-autoin input { color: var(--ink-2); }
+.pb-items-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.pb-bulk-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.pb-bulk-row .input { min-width: 150px; }
+.pb-bulk-row select { font-size: 15px; padding: 9px; border: 0; background: transparent; font-family: var(--font-body); }
 .fp-list { display: flex; flex-direction: column; gap: 8px; }
 .fp-row { display: grid; grid-template-columns: minmax(0, 1fr) 170px auto; gap: 8px; align-items: center; }
 @media (max-width: 520px) { .fp-row { grid-template-columns: minmax(0, 1fr) 130px; } .fp-row .xbtn { grid-column: 1 / -1; justify-self: start; } }
@@ -3178,7 +3196,7 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
   var EST_JOBTYPE = { screen: "pool", patio: "patio", sunroom: "sunroom", rescreen: "rescreen", service: "service" };
   var SCREEN_TYPES = { "1814": "18/14 standard", "2020": "20/20 No-See-Um", pet: "Pet screen" };
   var ROOF_STYLES = { flat: "Flat", mansard: "Mansard", gable: "Gable", hip: "Hip", dome: "Dome" };
-  var PB_GROUPS = ["Roof", "Walls & screen", "Windows", "Kick plates", "Doors", "Gutters & color", "Rescreen", "Site & fees", "Labor"];
+  var PB_GROUPS = ["Roof", "Walls & screen", "Windows", "Kick plates", "Doors", "Gutters & color", "Rescreen", "Site & fees", "Labor", "Other"];
   function pbItem(g, label, unit, cost, price, note) { return { g: g, label: label, unit: unit, cost: cost, price: price, note: note || "" }; }
   function pbDefaults() {
     return {
@@ -3278,13 +3296,45 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
       }
     };
   }
-  var pricebook = pbDefaults();
+  var pricebook = mergePricebook(null);
+  function pbPrices(P) { var o = {}; Object.keys(P.items).forEach(function (k) { o[k] = { price: P.items[k].price, at: P.items[k].updatedAt }; }); return o; }
+  var pbBase = pbPrices(pricebook); // prices as last loaded or saved, for the "last updated" stamp
+  // price = cost ÷ (1 − margin) unless the price was set by hand
+  function autoPrice(P, it) { return Math.round(num(it.cost) / (1 - num(P.margin)) * 10000) / 10000; }
+  function isAuto(it) { return it.priceMode === "auto" && !blank(it.cost); }
+  function recalcPrices(P, stamp) {
+    var changed = [];
+    Object.keys(P.items).forEach(function (k) {
+      var it = P.items[k]; if (!isAuto(it)) return;
+      var np = autoPrice(P, it);
+      if (it.price !== np) { it.price = np; if (stamp) it.updatedAt = new Date().toISOString(); changed.push(k); }
+    });
+    return changed;
+  }
+  function normalizePricebook(d) {
+    Object.keys(d.items).forEach(function (k) {
+      var it = d.items[k];
+      if (!it.updatedAt) it.updatedAt = "2026-10-27";
+      if (it.priceMode !== "auto" && it.priceMode !== "fixed") {
+        it.priceMode = blank(it.cost) ? "fixed" : (blank(it.price) || Math.abs(num(it.price) - autoPrice(d, it)) < 0.006 ? "auto" : "fixed");
+      }
+    });
+    recalcPrices(d, false);
+    return d;
+  }
   function mergePricebook(saved) {
     var d = pbDefaults();
-    if (!saved || typeof saved !== "object") return d;
+    if (!saved || typeof saved !== "object") return normalizePricebook(d);
     ["margin", "spanLimit", "laborMode", "measurePct", "includeDesignMeasure", "militaryPct", "protectDiscounts"].forEach(function (k) { if (saved[k] !== undefined) d[k] = saved[k]; });
     Object.keys(saved.items || {}).forEach(function (k) {
-      if (d.items[k]) { var s = saved.items[k]; d.items[k].cost = s.cost === undefined ? d.items[k].cost : s.cost; d.items[k].price = s.price === undefined ? d.items[k].price : s.price; }
+      var s = saved.items[k] || {}, it = d.items[k];
+      if (!it) { if (!s.custom) return; it = d.items[k] = pbItem(s.g || "Other", s.label || "New item", s.unit || "each", null, null, s.note || ""); it.custom = true; }
+      if (s.cost !== undefined) it.cost = s.cost;
+      if (s.price !== undefined) it.price = s.price;
+      ["label", "unit", "note", "g"].forEach(function (f) { if (typeof s[f] === "string" && (f !== "g" || it.custom)) it[f] = s[f]; });
+      if (s.archived !== undefined) it.archived = !!s.archived;
+      if (s.updatedAt) it.updatedAt = s.updatedAt;
+      if (s.priceMode) it.priceMode = s.priceMode;
     });
     if (saved.labor) Object.keys(d.labor).forEach(function (k) { if (Array.isArray(saved.labor[k]) && saved.labor[k].length) d.labor[k] = saved.labor[k]; });
     if (saved.laborFlags) d.laborFlags = saved.laborFlags;
@@ -3293,11 +3343,11 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
     if (saved.tiers) ['essentialPct', 'legacyPct'].forEach(function (k) { if (saved.tiers[k] !== undefined) d.tiers[k] = saved.tiers[k]; });
     if (saved.tiers && saved.tiers.sheet) Object.keys(d.tiers.sheet).forEach(function (k) { if (typeof saved.tiers.sheet[k] === "string") d.tiers.sheet[k] = saved.tiers.sheet[k]; });
     if (d.tiers.sheet.validity === "Pricing valid for 30 days.") d.tiers.sheet.validity = "Pricing valid through {30 days}.";
-    return d;
+    return normalizePricebook(d);
   }
   function pbMissingCount() {
     var n = 0;
-    Object.keys(pricebook.items).forEach(function (k) { if (pricebook.items[k].price === null || pricebook.items[k].price === "") n++; });
+    Object.keys(pricebook.items).forEach(function (k) { var it = pricebook.items[k]; if (!it.archived && (it.price === null || it.price === "")) n++; });
     return n;
   }
 
@@ -3327,10 +3377,11 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
     function add(sec, label, qty, key, unitLabel, kind) {
       var item = P[key]; qty = num(qty);
       if (!item || !(qty > 0)) return null;
-      var miss = item.price === null || item.price === "";
+      var miss = item.price === null || item.price === "" || !!item.archived;
       var up = miss ? 0 : num(item.price), uc = item.cost === null || item.cost === "" ? null : num(item.cost);
       var ln = { sec: sec, label: label, qty: qty, unit: unitLabel || item.unit, unitPrice: up, unitCost: uc, price: qty * up, cost: uc === null ? null : qty * uc, kind: kind || "mat", missing: miss, item: item.label };
-      if (miss && missing.indexOf(item.label) < 0) missing.push(item.label);
+      var missName = item.label + (item.archived ? " (archived)" : "");
+      if (miss && missing.indexOf(missName) < 0) missing.push(missName);
       lines.push(ln);
       return ln;
     }
@@ -3455,6 +3506,14 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
         ln = { sec: "Other items", label: label, qty: qn, unit: "team hr", unitPrice: num(P.laborRate.price), unitCost: num(rates.teamRate), price: qn * num(P.laborRate.price), cost: qn * num(rates.teamRate), kind: "labor", other: true };
       } else {
         if (blank(o.qty)) qn = 1;
+        var bk = o.kind !== "sub" && o.key ? P[o.key] : null;
+        if (bk && !bk.archived && !blank(bk.price)) {
+          if (!(qn > 0)) return;
+          var bup = num(bk.price), buc = blank(bk.cost) ? bup * marginDiv : num(bk.cost);
+          if (!String(o.desc || "").trim()) label = bk.label;
+          ln = { sec: "Other items", label: label, qty: qn, unit: bk.unit, unitPrice: bup, unitCost: buc, price: qn * bup, cost: qn * buc, kind: "mat", other: true };
+          ln.noDesc = false; lines.push(ln); outs["other-" + o.id] = money(ln.price, true); return;
+        }
         var amt = num(o.amount); if (!(qn > 0) || !(amt > 0)) return;
         var asCost = o.amountType !== "price";
         var up = asCost ? amt / marginDiv : amt, uc = asCost ? amt : amt * marginDiv;
@@ -3837,7 +3896,7 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
       var sv = E.service || { items: [] }, P = pricebook.items;
       var bookOpts = function (sel) {
         return '<option value="">Type it in</option>' + PB_GROUPS.map(function (g) {
-          var ks = Object.keys(P).filter(function (k) { return P[k].g === g && !(P[k].price === null || P[k].price === "") && g !== "Labor"; });
+          var ks = Object.keys(P).filter(function (k) { return P[k].g === g && !P[k].archived && !(P[k].price === null || P[k].price === "") && g !== "Labor"; });
           return ks.length ? '<optgroup label="' + esc(g) + '">' + ks.map(function (k) { return '<option value="' + k + '"' + (k === sel ? " selected" : "") + ">" + esc(P[k].label) + " (" + usd2.format(num(P[k].price)) + " / " + esc(P[k].unit) + ")</option>"; }).join("") + "</optgroup>" : "";
         }).join("");
       };
@@ -3878,6 +3937,13 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
     return q("How will the customer pay?", chips("paysel", opts, sel),
       ep.method === "finance" ? (blank(ep.feePct) ? "Set this plan\'s fee in the price book to see what financing costs." : "The finance company keeps " + Math.round(num(ep.feePct) * 1000) / 10 + "% of the price. It's counted as a cost on Review and on the job. The customer's price doesn't change.") : "Not sure yet? Leave it on cash and change it when they decide.");
   }
+  function bookItemOptions(sel) {
+    var P = pricebook.items;
+    return '<option value="">Type it in</option>' + PB_GROUPS.map(function (g) {
+      var ks = Object.keys(P).filter(function (k) { return P[k].g === g && !P[k].archived && !blank(P[k].price) && g !== "Labor"; });
+      return ks.length ? '<optgroup label="' + esc(g) + '">' + ks.map(function (k) { return '<option value="' + k + '"' + (k === sel ? " selected" : "") + ">" + esc(P[k].label) + " (" + usd2.format(num(P[k].price)) + " / " + esc(P[k].unit) + ")</option>"; }).join("") + "</optgroup>" : "";
+    }).join("");
+  }
   function otherItemsHtml(E) {
     return '<h4 class="mini-h">Other items</h4><p class="sub" style="margin-top:-4px">For anything unusual this estimate doesn\'t cover. It\'s built into the price' + (singlePrice(E) ? "" : " (and scales with Essential and Legacy)") + " and isn\'t listed on the customer\'s sheet.</p>" +
       (E.other || []).map(function (o, i) {
@@ -3886,8 +3952,12 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
           '<div class="field"><label for="on' + i + '">What it\'s for</label>' + tIn("on" + i, "other." + i + ".desc", o.desc, "Crane rental for the second-story roof") +
             '<span class="help warn" data-desc-warn="' + o.id + '"' + (String(o.desc || "").trim() ? " hidden" : "") + '>Add a short description so the office knows what this is.</span>' + "</div>" +
           q("What kind of cost?", chips("other." + i + ".kind", [["mat", "Material"], ["labor", "Labor", "Team hours"], ["sub", "Subcontractor"]], o.kind || "mat")) +
-          (lab ? '<div class="field" style="max-width:260px"><label for="oh' + i + '">Hours</label>' + nIn("oh" + i, "other." + i + ".qty", o.qty, "team hrs") + '<span class="help">At ' + usd2.format(num(pricebook.items.laborRate.price)) + " per team hour</span></div>" :
-            q("Is the amount our cost or the customer's price?", chips("other." + i + ".amountType", [["cost", "Our cost", "Marked up to a " + Math.round(num(pricebook.margin) * 100) + "% margin"], ["price", "Customer price", "Used as entered"]], o.amountType || "cost")) +
+          (o.kind === "mat" || !o.kind ? '<div class="field"><label for="ok' + i + '">From the price book</label><div class="input"><select id="ok' + i + '" data-other-key="' + i + '">' + bookItemOptions(o.key) + "</select></div></div>" : "") +
+          (o.kind !== "sub" && !lab && o.key && pricebook.items[o.key] && !pricebook.items[o.key].archived && !blank(pricebook.items[o.key].price) ?
+            '<div class="grid2"><div class="field"><label for="oq' + i + '">Quantity</label>' + nIn("oq" + i, "other." + i + ".qty", o.qty, pricebook.items[o.key].unit, "1") + "</div>" +
+            '<div class="field"><span class="lbl">Our price</span><div class="num" style="font-size:17px">' + usd2.format(num(pricebook.items[o.key].price)) + " / " + esc(pricebook.items[o.key].unit) + "</div></div></div>" :
+          lab ? '<div class="field" style="max-width:260px"><label for="oh' + i + '">Hours</label>' + nIn("oh" + i, "other." + i + ".qty", o.qty, "team hrs") + '<span class="help">At ' + usd2.format(num(pricebook.items.laborRate.price)) + " per team hour</span></div>" :
+            q("Is the amount our cost or our price?", chips("other." + i + ".amountType", [["cost", "Our cost", "Marked up to a " + Math.round(num(pricebook.margin) * 100) + "% margin"], ["price", "Our price", "What we bill, used as entered"]], o.amountType || "cost")) +
             '<div class="grid2"><div class="field"><label for="oq' + i + '">Quantity</label>' + nIn("oq" + i, "other." + i + ".qty", o.qty, "", "1") + "</div>" +
             '<div class="field"><label for="oa' + i + '">Amount each</label><div class="input"><span class="pre">$</span><input id="oa' + i + '" data-e="other.' + i + '.amount" data-kind="num" inputmode="decimal" value="' + esc(blank(o.amount) ? "" : o.amount) + '" placeholder="0.00"></div></div></div>') +
           "</section>";
@@ -3933,6 +4003,9 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
     });
     var ao = main.querySelector("[data-add-other]"); if (ao) ao.addEventListener("click", function () {
       E.other = E.other || []; E.other.push({ id: eid(), desc: "", kind: "mat", amountType: "cost", qty: 1, amount: "" }); estSave(E._id, 0); keepScroll(renderWizard);
+    });
+    main.querySelectorAll("[data-other-key]").forEach(function (sel) {
+      sel.addEventListener("change", function () { if (readOnly) return; var o = E.other[+sel.dataset.otherKey]; o.key = sel.value; estSave(E._id, 0); keepScroll(renderWizard); });
     });
     main.querySelectorAll("[data-del-other]").forEach(function (b) { b.addEventListener("click", function () { E.other.splice(+b.dataset.delOther, 1); estSave(E._id, 0); keepScroll(renderWizard); }); });
     var as = main.querySelector("[data-add-svc]"); if (as) as.addEventListener("click", function () {
@@ -4222,16 +4295,36 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
   function renderBook() {
     var locked = readOnly || (mode === "live" && !isAdmin);
     var P = pricebook, dis = locked ? " disabled" : "", miss = pbMissingCount();
+    var sel = ev.pbSel = ev.pbSel || new Set(), showArch = !!ev.pbShowArch;
+    var archCount = Object.keys(P.items).filter(function (k) { return P.items[k].archived; }).length;
+    var mPct = Math.round(num(P.margin) * 1000) / 10;
     var groups = PB_GROUPS.map(function (g) {
-      var keys = Object.keys(P.items).filter(function (k) { return P.items[k].g === g; });
-      return '<section class="panel"><h3>' + g + '</h3><div class="table-scroll"><table class="bills pb"><thead><tr><th>Item</th><th>Unit</th><th class="r">Our cost</th><th class="r">Customer price</th></tr></thead><tbody>' +
+      var keys = Object.keys(P.items).filter(function (k) { return P.items[k].g === g && (showArch || !P.items[k].archived); });
+      if (!keys.length && g === "Other" && locked) return "";
+      return '<section class="panel"><h3>' + g + '</h3><div class="table-scroll"><table class="bills pb pb2"><thead><tr><th class="pb-ck"><span class="sr-only">Select</span></th><th>Item</th><th>Unit</th><th class="r">Our cost</th><th class="r">Our price</th><th class="opt">Last updated</th><th></th></tr></thead><tbody>' +
         keys.map(function (k) {
-          var it = P.items[k], missing = it.price === null || it.price === "";
-          return '<tr class="' + (missing ? "pb-miss" : "") + '"><td>' + esc(it.label) + (missing ? ' <span class="miss-pill">Needs price</span>' : "") + (it.note ? '<span class="why">' + esc(it.note) + "</span>" : "") + "</td><td>" + esc(it.unit) + "</td>" +
-            '<td><div class="input"><span class="pre">$</span><input id="pbc-' + k + '" data-pb="' + k + '" data-f="cost" inputmode="decimal" value="' + (it.cost === null || it.cost === "" ? "" : it.cost) + '" placeholder="—"></div></td>' +
-            '<td><div class="input"><span class="pre">$</span><input id="pbp-' + k + '" data-pb="' + k + '" data-f="price" inputmode="decimal" value="' + (missing ? "" : it.price) + '" placeholder="Needs price"></div></td></tr>';
-        }).join("") + "</tbody></table></div></section>";
+          var it = P.items[k], missing = blank(it.price), auto = isAuto(it);
+          var mode = blank(it.cost) ? "" : auto ? '<span class="pb-mode">Cost + ' + mPct + "%</span>" : '<span class="pb-mode hand">Set by hand</span>' + (locked ? "" : ' <button type="button" class="linkbtn pb-useauto" data-pb-auto="' + k + '">Use cost + ' + mPct + "%</button>");
+          return '<tr class="' + (missing && !it.archived ? "pb-miss" : "") + (it.archived ? " pb-arch" : "") + '">' +
+            '<td class="pb-ck"><input type="checkbox" data-pb-sel="' + k + '"' + (sel.has(k) ? " checked" : "") + ' aria-label="Select ' + esc(it.label) + '"></td>' +
+            '<td><div class="input"><input class="text" id="pbl-' + k + '" data-pb-label="' + k + '" value="' + esc(it.label) + '" placeholder="Item name" aria-label="Item name"></div>' +
+              (missing && !it.archived ? '<span class="miss-pill">Needs price</span> ' : "") + (it.archived ? '<span class="miss-pill">Archived</span> ' : "") + (it.note ? '<span class="why">' + esc(it.note) + "</span>" : "") + "</td>" +
+            '<td><div class="input pb-unit"><input class="text" id="pbu-' + k + '" data-pb-unit="' + k + '" value="' + esc(it.unit) + '" aria-label="Unit"></div></td>' +
+            '<td><div class="input"><span class="pre">$</span><input id="pbc-' + k + '" data-pb="' + k + '" data-f="cost" inputmode="decimal" value="' + (blank(it.cost) ? "" : it.cost) + '" placeholder="—" aria-label="Our cost"></div></td>' +
+            '<td><div class="input' + (auto ? " pb-autoin" : "") + '"><span class="pre">$</span><input id="pbp-' + k + '" data-pb="' + k + '" data-f="price" inputmode="decimal" value="' + (missing ? "" : it.price) + '" placeholder="Needs price" aria-label="Our price"></div><span class="pb-modewrap" id="pbm-' + k + '">' + mode + "</span></td>" +
+            '<td class="opt pb-date" id="pbd-' + k + '">' + (it.updatedAt ? fmtDate(String(it.updatedAt).slice(0, 10)) : "—") + "</td>" +
+            '<td><button type="button" class="xbtn" data-pb-arch="' + k + '">' + (it.archived ? "Restore" : "Archive") + "</button></td></tr>";
+        }).join("") + "</tbody></table></div>" +
+        '<div class="add-row"><button type="button" class="btn" data-pb-add="' + esc(g) + '">+ Add item to ' + esc(g) + "</button></div></section>";
     }).join("");
+    var bulk = '<section class="panel pb-bulk" id="pbBulk"><h3>Change cost on selected items</h3>' +
+      '<p class="sub" id="pbSelCount">' + (sel.size ? sel.size + " item" + (sel.size === 1 ? "" : "s") + " selected." : "Tick the items below, then change their cost here.") + " Prices on cost + margin update with the cost.</p>" +
+      '<div class="pb-bulk-row"><div class="input"><select id="pbBulkMode"><option value="pct">Raise cost by %</option><option value="amt">Raise cost by $</option><option value="set">Set cost to $</option></select></div>' +
+      '<div class="input"><input id="pbBulkVal" inputmode="decimal" placeholder="5" aria-label="Amount"></div>' +
+      '<button type="button" class="btn primary" id="pbBulkGo">Apply to selected</button><button type="button" class="btn ghost" id="pbBulkClear">Clear selection</button></div>' +
+      '<p class="help" id="pbBulkMsg" aria-live="polite"></p></section>';
+    var itemsHead = '<div class="pb-items-head"><p class="sub" style="margin:0">Our cost is what we pay; our price is what we bill. A price on <b>cost + ' + mPct + '%</b> updates whenever its cost changes. Typing a price yourself sets it by hand.</p>' +
+      (archCount ? '<button type="button" class="btn ghost" id="pbArchToggle">' + (showArch ? "Hide archived (" : "Show archived (") + archCount + ")</button>" : "") + "</div>";
     var lt = function (k, name, basis) {
       return '<div><div class="q-label">' + name + (P.laborFlags && P.laborFlags[k] ? ' <span class="miss-pill">Copied, confirm</span>' : "") + (P.labor[k].some(function (r) { return r[1] === null || r[1] === ""; }) ? ' <span class="miss-pill">Needs hours</span>' : "") + "</div>" +
         '<table class="bills pb"><thead><tr><th>' + (basis || "Footprint") + ' up to (sq ft)</th><th>Hours per sq ft</th></tr></thead><tbody>' +
@@ -4242,11 +4335,11 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
     var xh = function (k, label, unit) { var v = P.extraHrs[k]; return '<div class="field"><label for="xh-' + k + '">' + label + '</label><div class="input"><input id="xh-' + k + '" data-xh="' + k + '" inputmode="decimal" value="' + (v === null || v === "" ? "" : v) + '" placeholder="Not set"><span class="post">hrs / ' + unit + "</span></div></div>"; };
     main.innerHTML =
       '<button class="btn ghost back" id="pbBack" type="button">← Field estimator</button>' +
-      '<div class="est-head"><div><h2 class="nd-title">Price <span>Book</span></h2><p class="sub" style="margin:6px 0 0">Loaded from your JobTread catalog (October 27, 2026). Customer price is cost ÷ ' + (1 - num(P.margin)).toFixed(2) + " for a " + Math.round(num(P.margin) * 100) + "% margin; changing a cost updates its price. " + (miss ? "<b>" + miss + " items still need a price.</b>" : "") + "</p></div>" +
+      '<div class="est-head"><div><h2 class="nd-title">Price <span>Book</span></h2><p class="sub" style="margin:6px 0 0">Started from your JobTread catalog (October 27, 2026). Our price is our cost ÷ ' + (1 - num(P.margin)).toFixed(2) + " for a " + Math.round(num(P.margin) * 100) + "% margin. " + (miss ? "<b>" + miss + " items still need a price.</b>" : "") + "</p></div>" +
       '<div class="est-head-acts"><button class="btn primary" type="button" id="pbSave"' + dis + '>Save price book</button></div></div>' +
       '<p class="help" id="pbMsg" aria-live="polite">' + esc(ev.bookMsg || "") + "</p>" +
       (locked && !readOnly ? '<div class="banner" role="status"><strong>Only admins can change prices.</strong> You can look through the price book; every estimate uses these prices.</div>' : "") +
-      '<fieldset class="stack"' + dis + ">" + groups +
+      '<fieldset class="stack"' + dis + ">" + itemsHead + bulk + groups +
       '<section class="panel"><h3>Labor hours</h3><p class="sub">Hours = footprint × factor. JobTread applies one factor to the whole footprint, which jumps at each breakpoint (599 sq ft gets 71.9 hours, 601 gets 36.7). Bracketed applies each factor only to the square feet inside its range.</p>' +
         q("How factors apply", chips("laborMode", [["whole", "Whole footprint", "How JobTread does it"], ["bracket", "Bracketed", "No price jumps"]], P.laborMode)) +
         '<div class="lt-grid">' + lt("screen", "Screen enclosures") + lt("sunroom", "Sunrooms") + lt("patio", "Patio enclosures") + lt("rescreen", "Rescreens", "Screen area") + "</div>" +
@@ -4277,18 +4370,67 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
 
     var dirty = function () { ev.bookMsg = "Unsaved changes."; var m = $("#pbMsg"); if (m) m.textContent = ev.bookMsg; };
     $("#pbBack").addEventListener("click", function () { ev.bookMsg = ""; estGo({ sub: ev.id && estimates.has(ev.id) ? "wizard" : "list" }); });
+    var nowIso = function () { return new Date().toISOString(); };
+    var showRow = function (k) {
+      var it = P.items[k], pi = $("#pbp-" + k), m = $("#pbm-" + k), d = $("#pbd-" + k), auto = isAuto(it);
+      if (pi && document.activeElement !== pi) pi.value = blank(it.price) ? "" : it.price;
+      if (pi) pi.parentNode.classList.toggle("pb-autoin", auto);
+      if (m) m.innerHTML = blank(it.cost) ? "" : auto ? '<span class="pb-mode">Cost + ' + mPct + "%</span>" : '<span class="pb-mode hand">Set by hand</span>';
+      if (d) d.textContent = it.updatedAt ? fmtDate(String(it.updatedAt).slice(0, 10)) : "—";
+      var tr = pi && pi.closest("tr"); if (tr) tr.classList.toggle("pb-miss", blank(it.price) && !it.archived);
+    };
     main.querySelectorAll("[data-pb]").forEach(function (el) {
       el.addEventListener("input", function () {
-        var it = P.items[el.dataset.pb], v = parseField(el.value);
-        it[el.dataset.f] = v === "" ? null : v;
-        if (el.dataset.f === "cost" && v !== "") { it.price = Math.round(v / (1 - num(P.margin)) * 10000) / 10000; var pi = $("#pbp-" + el.dataset.pb); if (pi) pi.value = it.price; }
-        var tr = el.closest("tr"); if (tr) tr.classList.toggle("pb-miss", it.price === null);
-        dirty();
+        var k = el.dataset.pb, it = P.items[k], v = parseField(el.value);
+        if (el.dataset.f === "cost") {
+          it.cost = v === "" ? null : v;
+          if (v !== "") { it.priceMode = "auto"; it.price = autoPrice(P, it); }
+        } else {
+          it.price = v === "" ? null : v; it.priceMode = "fixed";
+        }
+        it.updatedAt = nowIso();
+        showRow(k); dirty();
       });
+    });
+    main.querySelectorAll("[data-pb-label]").forEach(function (el) { el.addEventListener("input", function () { P.items[el.dataset.pbLabel].label = el.value; dirty(); }); });
+    main.querySelectorAll("[data-pb-unit]").forEach(function (el) { el.addEventListener("input", function () { P.items[el.dataset.pbUnit].unit = el.value; dirty(); }); });
+    main.querySelectorAll("[data-pb-auto]").forEach(function (b) { b.addEventListener("click", function () { var it = P.items[b.dataset.pbAuto]; it.priceMode = "auto"; it.price = autoPrice(P, it); it.updatedAt = nowIso(); dirty(); keepScroll(renderBook); }); });
+    main.querySelectorAll("[data-pb-arch]").forEach(function (b) { b.addEventListener("click", function () { var it = P.items[b.dataset.pbArch]; it.archived = !it.archived; sel.delete(b.dataset.pbArch); dirty(); keepScroll(renderBook); }); });
+    main.querySelectorAll("[data-pb-add]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var k = "c" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+        var it = pbItem(b.dataset.pbAdd, "", "each", null, null); it.custom = true; it.priceMode = "auto"; it.updatedAt = nowIso();
+        P.items[k] = it; dirty(); keepScroll(renderBook);
+        var inp = $("#pbl-" + k); if (inp) inp.focus();
+      });
+    });
+    main.querySelectorAll("[data-pb-sel]").forEach(function (c) {
+      c.addEventListener("change", function () {
+        if (c.checked) sel.add(c.dataset.pbSel); else sel.delete(c.dataset.pbSel);
+        var sc = $("#pbSelCount"); if (sc) sc.textContent = (sel.size ? sel.size + " item" + (sel.size === 1 ? "" : "s") + " selected." : "Tick the items below, then change their cost here.") + " Prices on cost + margin update with the cost.";
+      });
+    });
+    var at = $("#pbArchToggle"); if (at) at.addEventListener("click", function () { ev.pbShowArch = !ev.pbShowArch; keepScroll(renderBook); });
+    $("#pbBulkClear").addEventListener("click", function () { sel.clear(); keepScroll(renderBook); });
+    $("#pbBulkGo").addEventListener("click", function () {
+      var msg = $("#pbBulkMsg"), mode = $("#pbBulkMode").value, v = parseField($("#pbBulkVal").value);
+      if (!sel.size) { msg.textContent = "Tick at least one item first."; return; }
+      if (v === "") { msg.textContent = "Enter the amount."; $("#pbBulkVal").focus(); return; }
+      var done = 0, skipped = [];
+      sel.forEach(function (k) {
+        var it = P.items[k]; if (!it) return;
+        if (mode !== "set" && blank(it.cost)) { skipped.push(it.label || "an unnamed item"); return; }
+        var c = mode === "set" ? v : mode === "amt" ? num(it.cost) + v : num(it.cost) * (1 + v / 100);
+        it.cost = Math.max(0, Math.round(c * 10000) / 10000);
+        it.priceMode = "auto"; it.price = autoPrice(P, it);
+        it.updatedAt = nowIso(); done++;
+      });
+      dirty(); keepScroll(renderBook);
+      var m2 = $("#pbBulkMsg"); if (m2) m2.textContent = "Updated the cost on " + done + " item" + (done === 1 ? "" : "s") + "." + (skipped.length ? " Skipped " + skipped.length + " with no cost yet (" + skipped.slice(0, 3).join(", ") + (skipped.length > 3 ? "…" : "") + "); use Set cost for those." : "") + " Save to keep it.";
     });
     main.querySelectorAll("[data-lt]").forEach(function (el) { el.addEventListener("input", function () { var v = parseField(el.value); P.labor[el.dataset.lt][+el.dataset.i][+el.dataset.c] = v === "" ? (el.dataset.c === "0" ? null : 0) : v; if (P.laborFlags) P.laborFlags[el.dataset.lt] = false; dirty(); }); });
     main.querySelectorAll("[data-xh]").forEach(function (el) { el.addEventListener("input", function () { var v = parseField(el.value); P.extraHrs[el.dataset.xh] = v === "" ? null : v; dirty(); }); });
-    main.querySelectorAll("[data-rule]").forEach(function (el) { el.addEventListener("input", function () { var v = num(el.value); P[el.dataset.rule] = el.dataset.pct ? v / 100 : v; dirty(); }); });
+    main.querySelectorAll("[data-rule]").forEach(function (el) { el.addEventListener("input", function () { var v = num(el.value); P[el.dataset.rule] = el.dataset.pct ? v / 100 : v; if (el.dataset.rule === "margin" && v < 100) { recalcPrices(P, false).forEach(function (k) { var b = pbBase[k]; P.items[k].updatedAt = b && P.items[k].price === b.price ? b.at : new Date().toISOString(); showRow(k); }); mPct = Math.round(num(P.margin) * 1000) / 10; } dirty(); }); });
     main.querySelectorAll("[data-tierpct]").forEach(function (el) { el.addEventListener("input", function () { P.tiers[el.dataset.tierpct] = num(el.value) / 100; dirty(); }); });
     main.querySelectorAll("[data-tf]").forEach(function (el) { el.addEventListener("input", function () { P.tiers.sheet[el.dataset.tf] = el.value; dirty(); }); });
     main.querySelectorAll("[data-choice]").forEach(function (b) { b.addEventListener("click", function () { P[b.dataset.choice] = parseChoice(b.dataset.val); dirty(); keepScroll(renderBook); }); });
@@ -4297,14 +4439,19 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
     main.querySelectorAll("[data-fp-del]").forEach(function (b) { b.addEventListener("click", function () { P.financePlans.splice(+b.dataset.fpDel, 1); dirty(); keepScroll(renderBook); }); });
     var fpa = $("#fpAdd"); if (fpa) fpa.addEventListener("click", function () { P.financePlans = P.financePlans || []; P.financePlans.push({ id: "fp" + Date.now().toString(36), name: "", feePct: null }); dirty(); keepScroll(renderBook); });
     var save = function () {
+      var now = new Date().toISOString();
+      Object.keys(P.items).forEach(function (k) { var b = pbBase[k]; if (!b) return; if (P.items[k].price === b.price) P.items[k].updatedAt = b.at; else if (String(P.items[k].updatedAt || "").slice(0, 10) !== now.slice(0, 10)) P.items[k].updatedAt = now; });
       ev.bookMsg = "Saving…"; var m = $("#pbMsg"); if (m) m.textContent = ev.bookMsg;
-      savePricebook().then(function (ok) { ev.bookMsg = ok ? (mode === "live" ? "Price book saved. Every estimate uses the new prices." : "Saving isn't available in this view.") : "The price book didn't save. Try again."; var mm = $("#pbMsg"); if (mm) mm.textContent = ev.bookMsg; });
+      savePricebook().then(function (ok) { if (ok) pbBase = pbPrices(pricebook); ev.bookMsg = ok ? (mode === "live" ? "Price book saved. Every estimate uses the new prices." : "Saving isn't available in this view.") : "The price book didn't save. Try again."; var mm = $("#pbMsg"); if (mm) mm.textContent = ev.bookMsg; });
     };
     $("#pbSave").addEventListener("click", save); $("#pbSave2").addEventListener("click", save);
     var rs = $("#pbReset");
     rs.addEventListener("click", function () {
-      if (!rs.classList.contains("armed")) { rs.classList.add("armed"); rs.textContent = "Replace every price with JobTread's?"; setTimeout(function () { if (rs.isConnected) { rs.classList.remove("armed"); rs.textContent = "Reset to JobTread prices"; } }, 4000); return; }
-      pricebook = pbDefaults(); ev.bookMsg = "Reset to JobTread prices. Save to keep it."; renderBook();
+      if (!rs.classList.contains("armed")) { rs.classList.add("armed"); rs.textContent = "Reset built-in items to JobTread's?"; setTimeout(function () { if (rs.isConnected) { rs.classList.remove("armed"); rs.textContent = "Reset to JobTread prices"; } }, 4000); return; }
+      var keep = {}; Object.keys(P.items).forEach(function (k) { if (P.items[k].custom) keep[k] = P.items[k]; });
+      pricebook = normalizePricebook(pbDefaults()); Object.keys(keep).forEach(function (k) { pricebook.items[k] = keep[k]; });
+      Object.keys(pricebook.items).forEach(function (k) { if (!pricebook.items[k].custom) pricebook.items[k].updatedAt = new Date().toISOString(); });
+      ev.bookMsg = "Built-in items reset to JobTread prices. Items you added are kept. Save to keep it."; renderBook();
     });
   }
 
@@ -4333,7 +4480,7 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
       }
     }, function () {});
     db.doc("settings/pricebook").onSnapshot(function (snap) {
-      if (snap.exists) { pricebook = mergePricebook(snap.data()); if (view.name === "est" && ev.sub !== "book") renderEst(); }
+      if (snap.exists) { pricebook = mergePricebook(snap.data()); pbBase = pbPrices(pricebook); if (view.name === "est" && ev.sub !== "book") renderEst(); }
     }, function () {});
     db.collection("estimates").onSnapshot(function (snap) {
       var seen = new Set();
