@@ -42,6 +42,8 @@
   --seg-net: #2f7a4f;
   --seg-cover: #1f7480;
   --seg-screen: #7a3e9a;
+  --seg-rescreen: #a3366b;
+  --seg-service: #8a5a2b;
   --font-display: "Barlow Condensed", "Arial Narrow", Arial, sans-serif;
   --font-body: "Source Sans 3", "Segoe UI", Helvetica, Arial, sans-serif;
   --font-data: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
@@ -52,7 +54,7 @@
     --bg: #14181c; --surface: #1c2126; --surface-2: #262d33; --line: #323a42;
     --ink: #e6e9ec; --ink-2: #9aa5b0; --bronze: #DD2420; --bronze-ink: #ffffff; --bronze-soft: #3a1e23;
     --good: #6cc08f; --good-soft: #1e3328; --bad: #f07a70; --bad-soft: #42201d; --warn: #e0b04a; --warn-soft: #352c16;
-    --seg-mat: #7fb0e0; --seg-lab: #f0a070; --seg-sub: #d9b75a; --seg-eng: #b39ae6; --seg-oh: #6b7682; --seg-net: #6cc08f; --seg-cover: #6cc6d1; --seg-screen: #c39be6;
+    --seg-mat: #7fb0e0; --seg-lab: #f0a070; --seg-sub: #d9b75a; --seg-eng: #b39ae6; --seg-oh: #6b7682; --seg-net: #6cc08f; --seg-cover: #6cc6d1; --seg-screen: #c39be6; --seg-rescreen: #e58ab5; --seg-service: #d4a373;
     color-scheme: dark;
   }
 }
@@ -60,7 +62,7 @@
   --bg: #14181c; --surface: #1c2126; --surface-2: #262d33; --line: #323a42;
   --ink: #e6e9ec; --ink-2: #9aa5b0; --bronze: #DD2420; --bronze-ink: #ffffff; --bronze-soft: #3a1e23;
   --good: #6cc08f; --good-soft: #1e3328; --bad: #f07a70; --bad-soft: #42201d; --warn: #e0b04a; --warn-soft: #352c16;
-  --seg-mat: #7fb0e0; --seg-lab: #f0a070; --seg-sub: #d9b75a; --seg-eng: #b39ae6; --seg-oh: #6b7682; --seg-net: #6cc08f; --seg-cover: #6cc6d1; --seg-screen: #c39be6;
+  --seg-mat: #7fb0e0; --seg-lab: #f0a070; --seg-sub: #d9b75a; --seg-eng: #b39ae6; --seg-oh: #6b7682; --seg-net: #6cc08f; --seg-cover: #6cc6d1; --seg-screen: #c39be6; --seg-rescreen: #e58ab5; --seg-service: #d4a373;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -749,7 +751,7 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
 
   /* ---------- constants & state ---------- */
   var DEFAULT_RATES = { teamRate: 113.15, overheadRate: 242.65 };
-  var TYPES = { pool: "Pool enclosure", patio: "Patio enclosure", sunroom: "Sunroom", cover: "Cover area", screen: "Screen room" };
+  var TYPES = { pool: "Pool enclosure", patio: "Patio enclosure", sunroom: "Sunroom", cover: "Cover area", screen: "Screen room", rescreen: "Rescreen", service: "Service" };
   function perType(make) { var o = {}; Object.keys(TYPES).forEach(function (k) { o[k] = make(); }); return o; }
   var STATUS = { estimate: "Estimate", active: "In progress", closed: "Closed" };
 
@@ -761,7 +763,7 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
   var loaded = false;
   var view = { name: "dash", filter: "all", jobId: null, tab: "estimate" };
   var dash = { period: null, sortKey: "net", sortDir: -1, q: "" };
-  var TYPE_COLOR = { pool: "--seg-mat", patio: "--seg-sub", sunroom: "--seg-lab", cover: "--seg-cover", screen: "--seg-screen" };
+  var TYPE_COLOR = { pool: "--seg-mat", patio: "--seg-sub", sunroom: "--seg-lab", cover: "--seg-cover", screen: "--seg-screen", rescreen: "--seg-rescreen", service: "--seg-service" };
   var saves = new Map(); // id -> {timer, writing, dirty}
   var saveError = false;
 
@@ -2048,7 +2050,7 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
       sameTypeAverages: pick(S.type),
       allJobsAverages: pick(S.all)
     };
-    return "You are a construction finance analyst reviewing one job for Advanced Aluminum, a Florida contractor that builds pool enclosures, patio enclosures, sunrooms, cover areas and screen rooms. " +
+    return "You are a construction finance analyst reviewing one job for Advanced Aluminum, a Florida contractor that builds pool enclosures, patio enclosures, sunrooms, cover areas and screen rooms, and also does rescreens (replacing the screen on an existing enclosure) and service work (repairs such as replacing doors). " +
       "Write insights on this job's financial performance for the owner.\n\n" +
       "How the numbers work: labor = team hours × team rate (a team is two technicians). Overhead = team hours × overhead rate. Gross profit = price − (materials + labor + subcontractors + engineering). Net profit = gross profit − overhead. " +
       "Margins are fractions (0.385 = 38.5%). Averages are weighted across the owner's completed jobs; hrsVar and matVar are fractions above (+) or below (−) the estimate; hrsPer100 is team hours per 100 sq ft. A null means not available.\n\n" +
@@ -2814,6 +2816,8 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
 
   function parseType(s) {
     s = String(s || "").toLowerCase();
+    if (/re-?\s*screen|screen\s*replace|replac\w*\s+(the\s+)?screen/.test(s)) return "rescreen";
+    if (/service|repair|replace|warranty|adjust|fix\b/.test(s)) return "service";
     if (/sun|glass|room addition|florida room|enclosed room/.test(s)) return "sunroom";
     if (/cover|carport|awning|pergola|\broof|canopy/.test(s) && !/enclos|screen|cage|pool/.test(s)) return "cover";
     if (/screen\s*room|screened\s*(room|porch)/.test(s)) return "screen";

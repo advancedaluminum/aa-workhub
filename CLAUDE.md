@@ -1,7 +1,7 @@
 # WorkHub: notes for Claude Code
 
 Advanced Aluminum's job costing app (Brevard County, FL: pool enclosures, patio enclosures,
-sunrooms, cover areas, screen rooms). Static site in `public/`, Supabase backend.
+sunrooms, cover areas, screen rooms, rescreens, service work). Static site in `public/`, Supabase backend.
 
 - `public/index.html` is the whole app. It was built as a Claude artifact and still calls
   `window.claude.use("db" | "user" | "assets" | "downloads" | "sample")`. `public/hub.js`
