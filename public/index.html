@@ -597,6 +597,9 @@ body.presenting .top, body.presenting .mainnav, body.presenting .foot, body.pres
 .pb2 .input input { font-size: 14.5px; padding: 8px; }
 .pb2 tr.pb-arch td { opacity: .6; }
 .pb2 .pb-date { white-space: nowrap; color: var(--ink-2); font-size: 13px; padding-top: 18px; }
+.pb-note { display: block; width: 100%; resize: none; overflow: hidden; min-height: 0; margin-top: 4px; border: 0; border-bottom: 1px dashed transparent; background: transparent; font: 12.5px/1.4 var(--font-body); color: var(--ink-2); padding: 2px 0; }
+.pb-note:hover, .pb-note:focus { border-bottom-color: var(--line); outline: none; color: var(--ink); }
+.pb-note::placeholder { color: var(--ink-2); opacity: .55; }
 .pb-modewrap { display: block; margin-top: 3px; }
 .pb-mode { font-size: 11.5px; color: var(--ink-2); font-weight: 600; }
 .pb-mode.hand { color: var(--warn); }
@@ -4308,7 +4311,8 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
           return '<tr class="' + (missing && !it.archived ? "pb-miss" : "") + (it.archived ? " pb-arch" : "") + '">' +
             '<td class="pb-ck"><input type="checkbox" data-pb-sel="' + k + '"' + (sel.has(k) ? " checked" : "") + ' aria-label="Select ' + esc(it.label) + '"></td>' +
             '<td><div class="input"><input class="text" id="pbl-' + k + '" data-pb-label="' + k + '" value="' + esc(it.label) + '" placeholder="Item name" aria-label="Item name"></div>' +
-              (missing && !it.archived ? '<span class="miss-pill">Needs price</span> ' : "") + (it.archived ? '<span class="miss-pill">Archived</span> ' : "") + (it.note ? '<span class="why">' + esc(it.note) + "</span>" : "") + "</td>" +
+              (missing && !it.archived ? '<span class="miss-pill">Needs price</span> ' : "") + (it.archived ? '<span class="miss-pill">Archived</span> ' : "") +
+              '<textarea class="pb-note" rows="1" id="pbn-' + k + '" data-pb-note="' + k + '" placeholder="Add a description" aria-label="Description">' + esc(it.note || "") + "</textarea></td>" +
             '<td><div class="input pb-unit"><input class="text" id="pbu-' + k + '" data-pb-unit="' + k + '" value="' + esc(it.unit) + '" aria-label="Unit"></div></td>' +
             '<td><div class="input"><span class="pre">$</span><input id="pbc-' + k + '" data-pb="' + k + '" data-f="cost" inputmode="decimal" value="' + (blank(it.cost) ? "" : it.cost) + '" placeholder="—" aria-label="Our cost"></div></td>' +
             '<td><div class="input' + (auto ? " pb-autoin" : "") + '"><span class="pre">$</span><input id="pbp-' + k + '" data-pb="' + k + '" data-f="price" inputmode="decimal" value="' + (missing ? "" : it.price) + '" placeholder="Needs price" aria-label="Our price"></div><span class="pb-modewrap" id="pbm-' + k + '">' + mode + "</span></td>" +
@@ -4393,6 +4397,8 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
       });
     });
     main.querySelectorAll("[data-pb-label]").forEach(function (el) { el.addEventListener("input", function () { P.items[el.dataset.pbLabel].label = el.value; dirty(); }); });
+    var fitNote = function (el) { el.style.height = "auto"; el.style.height = el.scrollHeight + "px"; };
+    main.querySelectorAll("[data-pb-note]").forEach(function (el) { fitNote(el); el.addEventListener("input", function () { P.items[el.dataset.pbNote].note = el.value.replace(/\n/g, " "); fitNote(el); dirty(); }); });
     main.querySelectorAll("[data-pb-unit]").forEach(function (el) { el.addEventListener("input", function () { P.items[el.dataset.pbUnit].unit = el.value; dirty(); }); });
     main.querySelectorAll("[data-pb-auto]").forEach(function (b) { b.addEventListener("click", function () { var it = P.items[b.dataset.pbAuto]; it.priceMode = "auto"; it.price = autoPrice(P, it); it.updatedAt = nowIso(); dirty(); keepScroll(renderBook); }); });
     main.querySelectorAll("[data-pb-arch]").forEach(function (b) { b.addEventListener("click", function () { var it = P.items[b.dataset.pbArch]; it.archived = !it.archived; sel.delete(b.dataset.pbArch); dirty(); keepScroll(renderBook); }); });
