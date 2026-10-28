@@ -38,6 +38,7 @@
   --seg-lab: #b8551b;
   --seg-sub: #7d6410;
   --seg-eng: #5b3f8c;
+  --seg-fin: #b02a5a;
   --seg-oh: #8a949f;
   --seg-net: #2f7a4f;
   --seg-cover: #1f7480;
@@ -587,6 +588,9 @@ code { font-family: var(--font-data); font-size: .9em; background: var(--surface
 
 /* customer presentation */
 body.presenting .top, body.presenting .mainnav, body.presenting .foot, body.presenting #banner, body.presenting #ratesPanel { display: none; }
+.fp-list { display: flex; flex-direction: column; gap: 8px; }
+.fp-row { display: grid; grid-template-columns: minmax(0, 1fr) 170px auto; gap: 8px; align-items: center; }
+@media (max-width: 520px) { .fp-row { grid-template-columns: minmax(0, 1fr) 130px; } .fp-row .xbtn { grid-column: 1 / -1; justify-self: start; } }
 .other-pill { display: inline-block; font-size: 11.5px; font-weight: 600; color: var(--ink-2); background: var(--line); border-radius: 999px; padding: 1px 8px; white-space: nowrap; }
 .help.warn { color: var(--warn); font-weight: 600; }
 .pres { display: flex; flex-direction: column; gap: 14px; padding-top: 14px; }
@@ -745,7 +749,7 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
   <main id="main">
     <div class="jobs"><div class="empty"><strong>Loading jobs…</strong>Your saved estimates and jobs will appear here.</div></div>
   </main>
-  <p class="foot">Labor and overhead are both charged per team hour (two technicians). Gross profit is the contract price minus direct costs: materials, labor, subcontractors and engineering. Net profit is gross profit minus overhead.</p>
+  <p class="foot">Labor and overhead are both charged per team hour (two technicians). Gross profit is the contract price minus direct costs: materials, labor, subcontractors, engineering and, on financed jobs, the finance company's fee. Net profit is gross profit minus overhead.</p>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
@@ -809,13 +813,15 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
   function isExample(j) { return /^Example\b/i.test(j.name || ""); }
 
   /* ---------- the math ---------- */
+  // financed jobs: the finance company keeps a fee (a % of the price), a direct cost of the job
+  function finPct(j) { var py = j.payment || {}; return py.method === "finance" ? Math.max(0, num(py.feePct)) : 0; }
   function calcEstimate(j) {
     var r = jobRates(j), e = j.estimate || {};
     var price = num(e.price), mat = num(e.materials), h = num(e.teamHours), subs = num(e.subs), eng = num(e.engineering);
-    var labor = h * num(r.teamRate), oh = h * num(r.overheadRate);
-    var direct = mat + labor + subs + eng, gross = price - direct, net = gross - oh;
+    var labor = h * num(r.teamRate), oh = h * num(r.overheadRate), fin = price * finPct(j);
+    var direct = mat + labor + subs + eng + fin, gross = price - direct, net = gross - oh;
     var sqft = num(j.sqft);
-    return { price: price, mat: mat, hrs: h, labor: labor, oh: oh, subs: subs, eng: eng, direct: direct, gross: gross, net: net,
+    return { price: price, mat: mat, hrs: h, labor: labor, oh: oh, subs: subs, eng: eng, fin: fin, direct: direct, gross: gross, net: net,
       gm: price ? gross / price : 0, nm: price ? net / price : 0, netPerHr: h ? net / h : 0,
       pricePerSqft: sqft ? price / sqft : 0, matPerSqft: sqft ? mat / sqft : 0 };
   }
@@ -825,10 +831,10 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
     var price = blank(a.price) ? num(e.price) : num(a.price);
     // blank actual subs / engineering = same as estimated, like the final price
     var mat = billTotal(j), h = num(a.teamHours), subs = blank(a.subs) ? num(e.subs) : num(a.subs), eng = blank(a.engineering) ? num(e.engineering) : num(a.engineering);
-    var labor = h * num(r.teamRate), oh = h * num(r.overheadRate);
-    var direct = mat + labor + subs + eng, gross = price - direct, net = gross - oh;
+    var labor = h * num(r.teamRate), oh = h * num(r.overheadRate), fin = price * finPct(j);
+    var direct = mat + labor + subs + eng + fin, gross = price - direct, net = gross - oh;
     var sqft = num(j.sqft);
-    return { price: price, mat: mat, hrs: h, labor: labor, oh: oh, subs: subs, eng: eng, direct: direct, gross: gross, net: net,
+    return { price: price, mat: mat, hrs: h, labor: labor, oh: oh, subs: subs, eng: eng, fin: fin, direct: direct, gross: gross, net: net,
       gm: price ? gross / price : 0, nm: price ? net / price : 0, netPerHr: h ? net / h : 0,
       pricePerSqft: sqft ? price / sqft : 0, matPerSqft: sqft ? mat / sqft : 0 };
   }
@@ -1125,6 +1131,7 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
 
     renderTab();
     bindInputs(main);
+    bindPayment();
     fillInputs();
     updateOutputs();
   }
@@ -1151,6 +1158,7 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
             moneyField("eH", "estimate.teamHours", "Estimated team hours", { post: "team hrs" }) +
             moneyField("eS", "estimate.subs", "Subcontractors", { help: "Electrical, concrete, roofing or other subs" }) +
             moneyField("eE", "estimate.engineering", "Engineering", { help: "Leave blank if the job doesn't need it" }) +
+            paymentFieldsHtml(j) +
             '<div class="field"><label for="eN">Notes</label><textarea class="notes text" id="eN" data-path="notes" data-kind="text" placeholder="Scope, colors, permit notes…"></textarea></div>' +
           "</fieldset>" +
           '<section class="panel" id="estOut" aria-live="polite"></section>' +
@@ -1214,6 +1222,30 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
     }
   }
 
+  function payOptions(py) {
+    var plans = (pricebook.financePlans || []), sel = py.method === "finance" ? (py.planId || "custom") : "cash";
+    var o = '<option value="cash"' + (sel === "cash" ? " selected" : "") + ">Cash, check or ACH</option>";
+    plans.forEach(function (p) { o += '<option value="' + esc(p.id) + '"' + (sel === p.id ? " selected" : "") + ">Financed: " + esc(p.name || "Finance plan") + (blank(p.feePct) ? " (fee not set)" : " (" + Math.round(num(p.feePct) * 1000) / 10 + "% fee)") + "</option>"; });
+    if (sel === "custom" || !plans.some(function (p) { return p.id === sel; }) && sel !== "cash") o += '<option value="custom" selected>Financed: ' + esc(py.planName || "other plan") + "</option>";
+    else o += '<option value="custom">Financed: other plan</option>';
+    return o;
+  }
+  function paymentFieldsHtml(j) {
+    var py = j.payment || {};
+    return '<div class="field"><label for="ePay">How the customer pays</label><div class="input"><select id="ePay">' + payOptions(py) + "</select></div>" +
+      (py.method === "finance" ? '<div class="input" style="margin-top:8px"><input id="eFee" inputmode="decimal" value="' + (blank(py.feePct) ? "" : Math.round(num(py.feePct) * 10000) / 100) + '" placeholder="Fee"><span class="post">% finance fee</span></div>' : "") +
+      '<span class="help">' + (py.method === "finance" ? "The finance company keeps this % of the price. It's counted as a cost of the job." : "Financed jobs lose the finance company's fee; choose the plan to count it.") + "</span></div>";
+  }
+  function setJobPayment(j, val) {
+    if (val === "cash") { j.payment = { method: "cash" }; return; }
+    var p = (pricebook.financePlans || []).find(function (x) { return x.id === val; });
+    j.payment = p ? { method: "finance", planId: p.id, planName: p.name, feePct: p.feePct } : { method: "finance", planId: "custom", planName: (j.payment && j.payment.planName) || "Other plan", feePct: j.payment && j.payment.method === "finance" ? j.payment.feePct : "" };
+  }
+  function bindPayment() {
+    var sel = $("#ePay"); if (!sel) return;
+    sel.addEventListener("change", function () { var j = cur(); if (!j || readOnly) return; setJobPayment(j, sel.value); queueSave(j._id, 0); var y = window.scrollY; renderJob(); window.scrollTo(0, y); });
+    var fee = $("#eFee"); if (fee) fee.addEventListener("input", function () { var j = cur(); if (!j || readOnly) return; var v = parseField(fee.value); j.payment = j.payment || { method: "finance" }; j.payment.feePct = v === "" ? "" : v / 100; queueSave(j._id, 700); updateOutputs(); });
+  }
   function bindInputs(root) {
     root.querySelectorAll("[data-path]").forEach(function (el) {
       el.addEventListener("input", function () {
@@ -1274,7 +1306,7 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
     }
     var segs = [
       ["Materials", e.mat, "--seg-mat"], ["Labor", e.labor, "--seg-lab"], ["Subcontractors", e.subs, "--seg-sub"],
-      ["Engineering", e.eng, "--seg-eng"], ["Overhead", e.oh, "--seg-oh"], ["Net profit", Math.max(0, e.net), "--seg-net"]
+      ["Engineering", e.eng, "--seg-eng"], ["Financing fee", e.fin, "--seg-fin"], ["Overhead", e.oh, "--seg-oh"], ["Net profit", Math.max(0, e.net), "--seg-net"]
     ];
     var total = Math.max(e.price, e.direct + e.oh);
     var bar = segs.filter(function (s) { return s[1] > 0; }).map(function (s) {
@@ -1294,6 +1326,7 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
       '<tr><td>' + sw("--seg-lab") + "Labor</td><td>" + money(e.labor, true) + '<span class="why">' + hrs(e.hrs) + " × " + usd2.format(num(r.teamRate)) + "</span></td><td>" + pct(e.labor / e.price) + "</td></tr>" +
       '<tr><td>' + sw("--seg-sub") + "Subcontractors</td><td>" + money(e.subs, true) + "</td><td>" + pct(e.subs / e.price) + "</td></tr>" +
       '<tr><td>' + sw("--seg-eng") + "Engineering</td><td>" + money(e.eng, true) + "</td><td>" + pct(e.eng / e.price) + "</td></tr>" +
+      (e.fin ? '<tr><td>' + sw("--seg-fin") + "Financing fee</td><td>" + money(e.fin, true) + '<span class="why">' + Math.round(finPct(j) * 1000) / 10 + "% of the price" + (j.payment && j.payment.planName ? ", " + esc(j.payment.planName) : "") + "</span></td><td>" + pct(e.fin / e.price) + "</td></tr>" : "") +
       '<tr class="subtotal"><td>Total direct costs</td><td>' + money(e.direct, true) + "</td><td>" + pct(e.direct / e.price) + "</td></tr>" +
       '<tr class="result"><td>Gross profit</td><td class="' + (e.gross < 0 ? "neg" : "") + '">' + money(e.gross, true) + "</td><td>" + pct(e.gm) + "</td></tr>" +
       '<tr><td>' + sw("--seg-oh") + "Overhead</td><td>" + money(e.oh, true) + '<span class="why">' + hrs(e.hrs) + " × " + usd2.format(num(r.overheadRate)) + "</span></td><td>" + pct(e.oh / e.price) + "</td></tr>" +
@@ -1477,7 +1510,8 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
       { k: "Labor", d: -(a.labor - e.labor) },
       { k: "Overhead", d: -(a.oh - e.oh) },
       { k: "Subcontractors", d: -(a.subs - e.subs) },
-      { k: "Engineering", d: -(a.eng - e.eng) }
+      { k: "Engineering", d: -(a.eng - e.eng) },
+      { k: "Financing fee", d: -(a.fin - e.fin) }
     ];
     var finds = [];
     finds.push({ t: dNet >= 0 ? "good" : "bad", s: "Net profit finished " + money(Math.abs(dNet)) + " " + (dNet >= 0 ? "above" : "below") + " the estimate: " + money(a.net) + " actual against " + money(e.net) + " estimated." });
@@ -1489,6 +1523,7 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
     if (Math.abs(dm) >= 1 && e.mat) finds.push({ t: dm > 0 ? "bad" : "good", s: "Materials came in " + money(Math.abs(dm)) + " " + (dm > 0 ? "over" : "under") + " budget (" + pct(Math.abs(dm) / e.mat) + ")" + (a.matPerSqft ? ", or " + usd2.format(a.matPerSqft) + " per sq ft against " + usd2.format(e.matPerSqft) + " estimated." : ".") });
     var dp = a.price - e.price;
     if (Math.abs(dp) >= 1) finds.push({ t: dp > 0 ? "good" : "bad", s: "The final price was " + money(Math.abs(dp)) + " " + (dp > 0 ? "higher" : "lower") + " than the estimate" + (dp > 0 ? ", likely from change orders." : ".") });
+    if (a.fin) finds.push({ t: "bad", s: "The finance company's fee cost " + money(a.fin) + " (" + Math.round(finPct(j) * 1000) / 10 + "% of the price). A cash, check or ACH sale would have earned that much more." });
     var ds = (a.subs - e.subs) + (a.eng - e.eng);
     if (Math.abs(ds) >= 1) finds.push({ t: ds > 0 ? "bad" : "good", s: "Subcontractor and engineering costs ran " + money(Math.abs(ds)) + " " + (ds > 0 ? "over" : "under") + " the estimate." });
     if (finds.length > 1) {
@@ -1529,6 +1564,7 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
       row("Labor", e.labor, a.labor, "cost") +
       row("Subcontractors", e.subs, a.subs, "cost") +
       row("Engineering", e.eng, a.eng, "cost") +
+      (e.fin || a.fin ? row("Financing fee", e.fin, a.fin, "cost") : "") +
       row("Total direct costs", e.direct, a.direct, "cost", null, "subtotal") +
       row("Gross profit", e.gross, a.gross, "rev", null, "result") +
       row("Gross margin", e.gm, a.gm, "pct", pf, "muted") +
@@ -2049,8 +2085,8 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
     var data = {
       job: { name: j.name, type: TYPES[j.type], sqft: F.sq || null, location: j.location || null, status: STATUS[j.status], completedDate: j.completedDate || null, notes: (j.notes || "").slice(0, 400) },
       rates: { teamRatePerTeamHour: num(r.teamRate), overheadPerTeamHour: num(r.overheadRate) },
-      estimate: { price: r2(e.price), materials: r2(e.mat), teamHours: r2(e.hrs), labor: r2(e.labor), subcontractors: r2(e.subs), engineering: r2(e.eng), directCosts: r2(e.direct), grossProfit: r2(e.gross), overhead: r2(e.oh), netProfit: r2(e.net) },
-      actual: F.closed ? { finalPrice: r2(a.price), materialsFromBills: r2(a.mat), teamHours: r2(a.hrs), labor: r2(a.labor), subcontractors: r2(a.subs), engineering: r2(a.eng), directCosts: r2(a.direct), grossProfit: r2(a.gross), overhead: r2(a.oh), netProfit: r2(a.net) }
+      estimate: { price: r2(e.price), materials: r2(e.mat), teamHours: r2(e.hrs), labor: r2(e.labor), subcontractors: r2(e.subs), engineering: r2(e.eng), financingFee: r2(e.fin), directCosts: r2(e.direct), grossProfit: r2(e.gross), overhead: r2(e.oh), netProfit: r2(e.net) },
+      actual: F.closed ? { finalPrice: r2(a.price), materialsFromBills: r2(a.mat), teamHours: r2(a.hrs), labor: r2(a.labor), subcontractors: r2(a.subs), engineering: r2(a.eng), financingFee: r2(a.fin), directCosts: r2(a.direct), grossProfit: r2(a.gross), overhead: r2(a.oh), netProfit: r2(a.net) }
         : { materialBillsSoFar: r2(billTotal(j)), materialsBudgetUsed: e.mat ? r2(billTotal(j) / e.mat) : null },
       billsBySupplier: Object.keys(vendors).map(function (k) { return { supplier: k, total: r2(vendors[k]) }; }),
       thisJobMeasures: pick(F),
@@ -2059,7 +2095,7 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
     };
     return "You are a construction finance analyst reviewing one job for Advanced Aluminum, a Florida contractor that builds pool enclosures, patio enclosures, sunrooms, cover areas and screen rooms, and also does rescreens (replacing the screen on an existing enclosure) and service work (repairs such as replacing doors). " +
       "Write insights on this job's financial performance for the owner.\n\n" +
-      "How the numbers work: labor = team hours × team rate (a team is two technicians). Overhead = team hours × overhead rate. Gross profit = price − (materials + labor + subcontractors + engineering). Net profit = gross profit − overhead. " +
+      "How the numbers work: labor = team hours × team rate (a team is two technicians). Overhead = team hours × overhead rate. Gross profit = price − (materials + labor + subcontractors + engineering + financing fee). The financing fee is what the finance company keeps when the customer finances (a % of the price); it is 0 for cash, check or ACH. Net profit = gross profit − overhead. " +
       "Margins are fractions (0.385 = 38.5%). Averages are weighted across the owner's completed jobs; hrsVar and matVar are fractions above (+) or below (−) the estimate; hrsPer100 is team hours per 100 sq ft. A null means not available.\n\n" +
       (F.closed ? "The job is completed: judge the actual results and how they compare with the estimate.\n" : "The job is NOT completed: judge the estimate and the bills so far; call the figures projected, and do not claim final results.\n") +
       "Rules:\n- 4 to 6 insights, most important first. Each has a short title (under 10 words) and a detail of 1-2 sentences with specific dollar or percent figures from the data.\n" +
@@ -2135,14 +2171,14 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
       ["Team hours", e.hrs, closed ? a.hrs : null, "hrs"],
       ["Labor", e.labor, closed ? a.labor : null, "cost"],
       ["Subcontractors", e.subs, closed ? a.subs : null, "cost"],
-      ["Engineering", e.eng, closed ? a.eng : null, "cost"],
+      ["Engineering", e.eng, closed ? a.eng : null, "cost"]].concat(e.fin || a.fin ? [["Financing fee", e.fin, closed ? a.fin : null, "cost"]] : []).concat([
       ["Total direct costs", e.direct, closed ? a.direct : null, "cost", "sub"],
       ["Gross profit", e.gross, closed ? a.gross : null, "rev", "result"],
       ["Gross margin", e.gm, closed ? a.gm : null, "pct"],
       ["Overhead", e.oh, closed ? a.oh : null, "cost"],
       ["Net profit", e.net, closed ? a.net : null, "rev", "result"],
       ["Net margin", e.nm, closed ? a.nm : null, "pct"]
-    ];
+    ]);
     var cmp = CMP_ROWS.filter(function (row) { return row.length > 1 && (closed || !/Var$|VsEst$/.test(row[0])); }).map(function (row) {
       return { label: row[1], fmt: row[2], dir: row[3], job: F[row[0]], type: S.type[row[0]], all: S.all[row[0]], key: row[0] };
     });
@@ -2475,10 +2511,10 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
   /* ---------- dashboard: job profitability ---------- */
   function yearOf(j) { var d = completedOn(j); return d ? String(d.getFullYear()) : ""; }
   function sumUp(list) {
-    var t = { n: list.length, rev: 0, gross: 0, net: 0, oh: 0, hrs: 0, est: 0, sqft: 0, sqRev: 0 };
+    var t = { n: list.length, rev: 0, gross: 0, net: 0, oh: 0, hrs: 0, est: 0, sqft: 0, sqRev: 0, fin: 0 };
     list.forEach(function (j) {
       var a = calcActual(j), e = calcEstimate(j), sq = num(j.sqft);
-      t.rev += a.price; t.gross += a.gross; t.net += a.net; t.oh += a.oh; t.hrs += a.hrs; t.est += e.net;
+      t.rev += a.price; t.gross += a.gross; t.net += a.net; t.oh += a.oh; t.hrs += a.hrs; t.est += e.net; t.fin += a.fin;
       if (sq > 0) { t.sqft += sq; t.sqRev += a.price; }
     });
     t.gm = t.rev ? t.gross / t.rev : null; t.nm = t.rev ? t.net / t.rev : null;
@@ -2557,6 +2593,15 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
       typeRows.map(function (x) { var s = x.s; return '<tr><td><span class="sw" style="background:var(' + TYPE_COLOR[x.t] + ')"></span>' + TYPES[x.t] + "</td><td>" + s.n + "</td><td>" + money(s.rev) + '</td><td class="opt">' + money(s.avg) + '</td><td class="opt">' + (s.perSqft ? usd2.format(s.perSqft) : "—") + "</td><td>" + pct(s.gm) + '</td><td class="' + (s.nm < 0 ? "neg" : "") + '">' + pct(s.nm) + '</td><td class="opt' + (s.perHr < 0 ? " neg" : "") + '">' + (s.perHr !== null ? money(s.perHr, true) : "—") + "</td></tr>"; }).join("") +
       "</tbody></table></div>" : '<div class="empty">No jobs completed in this period.</div>';
 
+    // cash vs financed
+    var isFin = function (j) { return j.payment && j.payment.method === "finance"; };
+    var cashS = sumUp(done.filter(function (j) { return !isFin(j); })), finS = sumUp(done.filter(isFin));
+    var payRow = function (label, x) { return "<tr><td>" + label + "</td><td>" + x.n + "</td><td>" + money(x.rev) + "</td><td>" + (x.n ? money(x.fin) : "—") + '</td><td class="' + (x.nm < 0 ? "neg" : "") + '">' + (x.n ? pct(x.nm) : "—") + '</td><td class="opt">' + (x.n ? money(x.net / x.n) : "—") + "</td></tr>"; };
+    var payTable = done.length ? '<div class="table-scroll"><table class="ledger bytype"><thead><tr><th>Payment</th><th>Jobs</th><th>Revenue</th><th>Finance fees</th><th>Net margin</th><th class="opt">Avg net per job</th></tr></thead><tbody>' +
+      payRow("Cash, check or ACH", cashS) + payRow("Financed", finS) + "</tbody></table></div>" +
+      (finS.n ? '<p class="nd-note" style="margin-top:10px">Finance companies kept <b>' + money(finS.fin) + "</b> in " + label + (finS.rev ? ", " + pct(finS.fin / finS.rev) + " of financed revenue" : "") + ".</p>" : '<p class="nd-note" style="margin-top:10px">No completed jobs in this period were marked as financed. Set how the customer pays on each job\'s Estimate tab.</p>')
+      : '<div class="empty">No jobs completed in this period.</div>';
+
     // jobs in progress
     var wipRows = wip.slice().sort(function (a, b) { return calcEstimate(b).price - calcEstimate(a).price; });
     var wipTable = wipRows.length ? '<div class="table-scroll"><table class="bills nd-wip"><thead><tr><th>Job</th><th class="r">Contract</th><th class="r">Projected net</th><th class="r">Bills so far</th><th class="r opt">Of budget</th></tr></thead><tbody>' +
@@ -2577,6 +2622,7 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
         '<div class="panel nd-card"><h3>Revenue and net profit by month</h3><p class="nd-note">By the month each job was completed.</p><div class="legend nd-legend"><span><b style="background:var(--seg-mat)"></b>Revenue</span><span><b class="ln" style="background:var(--seg-lab)"></b>Net profit</span></div><div class="nd-chart" id="ndMonth"></div></div>' +
       "</div></section>" +
       '<section class="nd-sec" id="types"><h3 class="nd-h">By project type</h3><div class="panel nd-card"><p class="nd-note">Completed jobs in the period. Margins are total profit over total revenue, so bigger jobs weigh more.</p>' + typeTable + "</div></section>" +
+      '<section class="nd-sec" id="payments"><h3 class="nd-h">Cash vs financed</h3><div class="panel nd-card"><p class="nd-note">Completed jobs in the period. Financed jobs count the finance company\'s fee as a cost.</p>' + payTable + "</div></section>" +
       '<section class="nd-sec" id="alljobs"><h3 class="nd-h">Every completed job against its estimate</h3><div class="panel nd-card">' +
         '<div class="nd-tools"><p class="nd-note">Click a heading to sort, or a job to open it. Hours and materials show how far actuals came in from the estimate.</p><input type="search" class="nd-search" id="ndQ" placeholder="Search jobs" aria-label="Search jobs" value="' + esc(dash.q || "") + '"></div>' +
         '<div class="table-scroll nd-scroll"><table class="bills nd-jobs"><thead><tr>' +
@@ -3137,6 +3183,7 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
   function pbDefaults() {
     return {
       v: 1, margin: 0.20, spanLimit: 13, laborMode: "whole", measurePct: 0.05, includeDesignMeasure: false, militaryPct: 0.05, protectDiscounts: true,
+      financePlans: [{ id: "fp1", name: "Finance plan", feePct: null }],
       items: {
         roofScreen: pbItem("Roof", "Screen roof with 18/14 screen", "sq ft", 8.11, 10.1375, "JobTread: Roof Materials with 18/14 Screen"),
         roofUp2020: pbItem("Roof", "Roof screen upgrade to 20/20", "sq ft", 0.25, 0.2925, "Difference between 20/20 and 18/14 rescreen materials"),
@@ -3241,6 +3288,7 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
     });
     if (saved.labor) Object.keys(d.labor).forEach(function (k) { if (Array.isArray(saved.labor[k]) && saved.labor[k].length) d.labor[k] = saved.labor[k]; });
     if (saved.laborFlags) d.laborFlags = saved.laborFlags;
+    if (Array.isArray(saved.financePlans)) d.financePlans = saved.financePlans;
     if (saved.extraHrs) Object.keys(d.extraHrs).forEach(function (k) { if (saved.extraHrs[k] !== undefined) d.extraHrs[k] = saved.extraHrs[k]; });
     if (saved.tiers) ['essentialPct', 'legacyPct'].forEach(function (k) { if (saved.tiers[k] !== undefined) d.tiers[k] = saved.tiers[k]; });
     if (saved.tiers && saved.tiers.sheet) Object.keys(d.tiers.sheet).forEach(function (k) { if (typeof saved.tiers.sheet[k] === "string") d.tiers.sheet[k] = saved.tiers.sheet[k]; });
@@ -3770,6 +3818,7 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
         q("Military discount (" + Math.round(num(pricebook.militaryPct) * 100) + "%)?", yesNo("military", E.military),
           pricebook.protectDiscounts !== false ? "Discounts are margin-protected: the price before discounts goes up so the customer still pays the full price. The customer\'s sheet shows the discount." : "The customer\'s sheet shows the discount.") +
         '<div class="field" style="max-width:260px"><label for="disc">Other discount</label><div class="input"><span class="pre">$</span><input id="disc" data-e="discount" data-kind="num" inputmode="decimal" value="' + esc(blank(E.discount) ? "" : E.discount) + '" placeholder="0"></div></div>' +
+        payQuestion(E) +
         otherItemsHtml(E) +
         '<div class="field"><label for="enotes">Notes for the office</label><textarea class="notes text" id="enotes" data-e="notes" data-kind="text" placeholder="Access, HOA, existing slab condition…">' + esc(E.notes || "") + "</textarea></div>";
     }
@@ -3815,6 +3864,20 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
     return "";
   }
 
+  // how the customer pays; financed estimates count the plan's fee as a cost
+  function estPay(E) {
+    var py = E.payment || {};
+    if (py.method !== "finance") return { method: "cash" };
+    var p = (pricebook.financePlans || []).find(function (x) { return x.id === py.planId; });
+    return { method: "finance", planId: py.planId, planName: p ? p.name || "Finance plan" : py.planName || "Finance plan", feePct: p ? p.feePct : py.feePct };
+  }
+  function payQuestion(E) {
+    var py = E.payment || {}, sel = py.method === "finance" ? py.planId : "cash";
+    var opts = [["cash", "Cash, check or ACH"]].concat((pricebook.financePlans || []).map(function (p) { return [p.id, "Financed: " + (p.name || "Finance plan"), blank(p.feePct) ? "Fee not set" : Math.round(num(p.feePct) * 1000) / 10 + "% fee"]; }));
+    var ep = estPay(E);
+    return q("How will the customer pay?", chips("paysel", opts, sel),
+      ep.method === "finance" ? (blank(ep.feePct) ? "Set this plan\'s fee in the price book to see what financing costs." : "The finance company keeps " + Math.round(num(ep.feePct) * 1000) / 10 + "% of the price. It's counted as a cost on Review and on the job. The customer's price doesn't change.") : "Not sure yet? Leave it on cash and change it when they decide.");
+  }
   function otherItemsHtml(E) {
     return '<h4 class="mini-h">Other items</h4><p class="sub" style="margin-top:-4px">For anything unusual this estimate doesn\'t cover. It\'s built into the price' + (singlePrice(E) ? "" : " (and scales with Essential and Legacy)") + " and isn\'t listed on the customer\'s sheet.</p>" +
       (E.other || []).map(function (o, i) {
@@ -3848,6 +3911,11 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
       b.addEventListener("click", function () {
         if (readOnly) return;
         var path = b.dataset.choice, val = parseChoice(b.dataset.val);
+        if (path === "paysel") {
+          var fp = (pricebook.financePlans || []).find(function (x) { return x.id === val; });
+          E.payment = fp ? { method: "finance", planId: fp.id, planName: fp.name, feePct: fp.feePct } : { method: "cash" };
+          estSave(E._id, 0); keepScroll(renderWizard); return;
+        }
         setPath(E, path, val);
         if (path === "type") applyTypeDefaults(E, val);
         if (/^roofs\.\d+\.type$/.test(path) && val === "composite" && E.type !== "screen") { /* keep */ }
@@ -3929,7 +3997,7 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
   function drawReview(E, C) {
     var box = $("#reviewBody");
     var one = singlePrice(E);
-    var job = { rates: { teamRate: rates.teamRate, overheadRate: rates.overheadRate }, sqft: C.footprint, estimate: { price: C.total, materials: C.matCost, teamHours: C.teamHours, subs: C.subs, engineering: C.eng } };
+    var job = { payment: estPay(E), rates: { teamRate: rates.teamRate, overheadRate: rates.overheadRate }, sqft: C.footprint, estimate: { price: C.total, materials: C.matCost, teamHours: C.teamHours, subs: C.subs, engineering: C.eng } };
     var J = calcEstimate(job);
     var miss = C.missing.length ? '<div class="banner"><strong>' + C.missing.length + " item" + (C.missing.length === 1 ? " has" : "s have") + " no price yet, so this total is low.</strong> " + esc(C.missing.join(", ")) + '. <button type="button" class="linkbtn" id="rvBook">Open the price book</button></div>' : "";
     var tierPh = "";
@@ -3958,6 +4026,7 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
           "<tr><td>Labor · " + (Math.round(J.hrs * 10) / 10) + " team hrs</td><td>" + money(J.labor) + "</td></tr>" +
           (J.subs ? "<tr><td>Subcontractors</td><td>" + money(J.subs) + "</td></tr>" : "") +
           "<tr><td>Permit & engineering</td><td>" + money(J.eng) + "</td></tr>" +
+          (job.payment.method === "finance" ? "<tr><td>Financing fee · " + esc(job.payment.planName) + (blank(job.payment.feePct) ? ' <span class="miss-pill">Fee not set</span>' : " (" + Math.round(num(job.payment.feePct) * 1000) / 10 + "%)") + '</td><td class="neg">' + money(J.fin) + "</td></tr>" : "") +
           '<tr class="result"><td>Gross profit</td><td class="' + (J.gross < 0 ? "neg" : "") + '">' + money(J.gross) + " · " + pct(J.gm) + "</td></tr>" +
           "<tr><td>Overhead</td><td>" + money(J.oh) + "</td></tr>" +
           '<tr class="result"><td>Net profit</td><td class="' + (J.net < 0 ? "neg" : "pos") + '">' + money(J.net) + " · " + pct(J.nm) + "</td></tr>" +
@@ -3994,7 +4063,7 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
       estimate: { price: Math.round(price), materials: Math.round(C.matCost * 100) / 100, teamHours: Math.round(C.teamHours * 10) / 10, subs: Math.round(C.subs * 100) / 100, engineering: Math.round(C.eng * 100) / 100 },
       bills: [], actual: { price: "", teamHours: "", subs: "", engineering: "" },
       notes: "From field estimate" + (E.estimator ? " by " + E.estimator : "") + ". " + (one ? (E.type === "service" && E.service && E.service.desc ? E.service.desc + ". " : "") : (E.tier ? E.tier.charAt(0).toUpperCase() + E.tier.slice(1) : "Signature") + " Series. ") + (E.notes || ""),
-      fromEstimate: E._id
+      fromEstimate: E._id, payment: estPay(E)
     };
     j._id = id; jobs.set(id, j); queueSave(id, 0);
     E.jobId = id; E.status = "job"; estSave(E._id, 0);
@@ -4188,6 +4257,13 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
         '<div class="field"><label for="pbE">Essential vs Signature</label><div class="input"><input id="pbE" data-tierpct="essentialPct" inputmode="decimal" value="' + Math.round(num(P.tiers.essentialPct) * 1000) / 10 + '"><span class="post">%</span></div></div>' +
         '<div class="field"><label for="pbL">Legacy vs Signature</label><div class="input"><input id="pbL" data-tierpct="legacyPct" inputmode="decimal" value="' + Math.round(num(P.tiers.legacyPct) * 1000) / 10 + '"><span class="post">%</span></div></div>' +
         "</div>" + q("Charge design and measure on new estimates by default?", chips("includeDesignMeasure", [[true, "Yes"], [false, "No"]], !!P.includeDesignMeasure)) +
+        '<h4 class="mini-h">Finance plans</h4><p class="sub" style="margin-top:-4px">The fee each finance company plan keeps, as a % of the price. Used to count the fee as a cost on financed estimates and jobs.</p>' +
+        '<div class="fp-list">' + (P.financePlans || []).map(function (fp, i) {
+          return '<div class="fp-row"><div class="input"><input class="text" id="fpn' + i + '" data-fp-name="' + i + '" value="' + esc(fp.name || "") + '" placeholder="Plan name" aria-label="Plan name"></div>' +
+            '<div class="input"><input id="fpf' + i + '" data-fp-fee="' + i + '" inputmode="decimal" value="' + (blank(fp.feePct) ? "" : Math.round(num(fp.feePct) * 10000) / 100) + '" placeholder="Needs fee" aria-label="Fee percent"><span class="post">% fee</span></div>' +
+            '<button type="button" class="xbtn" data-fp-del="' + i + '">Remove</button></div>';
+        }).join("") + "</div>" +
+        '<div class="add-row"><button type="button" class="btn" id="fpAdd">+ Add finance plan</button></div>' +
         q("Protect margin on discounts?", chips("protectDiscounts", [[true, "Yes", "Price goes up so the discount comes out of the price, not the margin"], [false, "No", "Discounts lower the price"]], P.protectDiscounts !== false),
           "Percentage discounts are grossed up by dividing (price ÷ 0.95 for 5%), so the customer pays exactly the full price after the discount.") + "</section>" +
       '<section class="panel"><h3>Price sheet</h3><p class="sub">What the customer sees under each option. One line each. Start a line with # for a section heading. Lines starting Badge:, Tagline:, Warranty:, Plus:, Choose one: (options split with |) and Callout: (title | text) fill those parts of the card.</p><div class="tf-grid">' +
@@ -4214,6 +4290,10 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
     main.querySelectorAll("[data-tierpct]").forEach(function (el) { el.addEventListener("input", function () { P.tiers[el.dataset.tierpct] = num(el.value) / 100; dirty(); }); });
     main.querySelectorAll("[data-tf]").forEach(function (el) { el.addEventListener("input", function () { P.tiers.sheet[el.dataset.tf] = el.value; dirty(); }); });
     main.querySelectorAll("[data-choice]").forEach(function (b) { b.addEventListener("click", function () { P[b.dataset.choice] = parseChoice(b.dataset.val); dirty(); keepScroll(renderBook); }); });
+    main.querySelectorAll("[data-fp-name]").forEach(function (el) { el.addEventListener("input", function () { P.financePlans[+el.dataset.fpName].name = el.value; dirty(); }); });
+    main.querySelectorAll("[data-fp-fee]").forEach(function (el) { el.addEventListener("input", function () { var v = parseField(el.value); P.financePlans[+el.dataset.fpFee].feePct = v === "" ? null : v / 100; dirty(); }); });
+    main.querySelectorAll("[data-fp-del]").forEach(function (b) { b.addEventListener("click", function () { P.financePlans.splice(+b.dataset.fpDel, 1); dirty(); keepScroll(renderBook); }); });
+    var fpa = $("#fpAdd"); if (fpa) fpa.addEventListener("click", function () { P.financePlans = P.financePlans || []; P.financePlans.push({ id: "fp" + Date.now().toString(36), name: "", feePct: null }); dirty(); keepScroll(renderBook); });
     var save = function () {
       ev.bookMsg = "Saving…"; var m = $("#pbMsg"); if (m) m.textContent = ev.bookMsg;
       savePricebook().then(function (ok) { ev.bookMsg = ok ? (mode === "live" ? "Price book saved. Every estimate uses the new prices." : "Saving isn't available in this view.") : "The price book didn't save. Try again."; var mm = $("#pbMsg"); if (mm) mm.textContent = ev.bookMsg; });
