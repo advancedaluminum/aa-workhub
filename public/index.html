@@ -4183,7 +4183,11 @@ textarea.tf { min-height: 420px; font-size: 14.5px; }
       snap.docs.forEach(function (d) {
         seen.add(d.id);
         if (estPending(d.id)) return;
-        var body = clone(d.data() || {}); body._id = d.id; estimates.set(d.id, body);
+        var body = clone(d.data() || {}); body._id = d.id;
+        // Update the estimate in place: the open wizard holds this object, so replacing it would lose what's typed next.
+        var have = estimates.get(d.id);
+        if (have) { Object.keys(have).forEach(function (k) { if (k !== "_id") delete have[k]; }); Object.assign(have, body); }
+        else estimates.set(d.id, body);
       });
       estimates.forEach(function (_, id) { if (!seen.has(id) && !estPending(id) && !snap.metadata.fromCache) estimates.delete(id); });
       estLoaded = true;
